@@ -1,46 +1,53 @@
 # Raspberry Pi Stable Diffusion Installer
 
-Interactive CLI installer for Automatic1111 Stable Diffusion WebUI on Raspberry Pi.
+Interactive remote-bash installer for Automatic1111 Stable Diffusion WebUI on Raspberry Pi.
 
 ## Index
 
-1. [Files in this bundle](#1-files-in-this-bundle)
-2. [Install](#2-install)
+1. [Remote install](#1-remote-install)
+2. [GitHub setup](#2-github-setup)
 3. [Interactive installer menu](#3-interactive-installer-menu)
 4. [Run after install](#4-run-after-install)
 5. [First run note](#5-first-run-note)
 6. [GUI launcher](#6-gui-launcher)
 7. [Model downloads](#7-model-downloads)
 8. [Uninstall](#8-uninstall)
-9. [Notes](#9-notes)
+9. [Included files](#9-included-files)
+10. [Notes](#10-notes)
 
-## 1. Files in this bundle
+## 1. Remote install
 
-- `setup_sd.sh` - interactive installer
-- `sd_gui_banner.png` - GUI banner artwork used when installing from this bundle
-
-The installer also contains an embedded banner fallback, so remote installs using `curl` or `wget` can still create the GUI banner even when the PNG is not downloaded separately.
-
-## 2. Install
-
-From the bundle folder:
-
-```bash
-chmod +x setup_sd.sh
-./setup_sd.sh
-```
-
-Remote install from GitHub:
+Install directly from GitHub with `curl`:
 
 ```bash
 curl -sSL https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setup_sd.sh | bash
 ```
 
-or:
+or with `wget`:
 
 ```bash
 wget -qO- https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setup_sd.sh | bash
 ```
+
+This installer is self-contained for remote bash installs. The GUI banner is embedded inside `setup_sd.sh`, so the remote install does not need a separate banner download.
+
+## 2. GitHub setup
+
+For remote install, place this file at the root of your GitHub repo:
+
+```bash
+setup_sd.sh
+```
+
+The installer can then be run remotely from:
+
+```bash
+https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setup_sd.sh
+```
+
+`README.md` documents the installer.
+
+`sd_gui_banner.png` is included for local reference and local extracted installs, but remote `curl` / `wget` installs use the embedded banner inside `setup_sd.sh`.
 
 ## 3. Interactive installer menu
 
@@ -177,7 +184,15 @@ The uninstaller removes:
 - menu launcher
 - `/tmp/sd_gui.pid`
 
-## 9. Notes
+## 9. Included files
+
+- `setup_sd.sh` - interactive self-contained remote-bash installer
+- `sd_gui_banner.png` - GUI banner artwork for local reference/local extracted installs
+- `README.md` - this documentation
+
+Remote install only requires `setup_sd.sh`.
+
+## 10. Notes
 
 - This installer is intended for Raspberry Pi OS 64-bit.
 - CPU-only PyTorch is installed.
