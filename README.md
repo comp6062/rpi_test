@@ -33,21 +33,19 @@ This installer is self-contained for remote bash installs. The GUI banner is emb
 
 ## 2. GitHub setup
 
-For remote install, place this file at the root of your GitHub repo:
+Place `setup_sd.sh` in the root of your GitHub repository.
+
+The installer can then be run remotely with either:
 
 ```bash
-setup_sd.sh
+curl -sSL https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setup_sd.sh | bash
 ```
 
-The installer can then be run remotely from:
+or
 
 ```bash
-https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setup_sd.sh
+wget -qO- https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setup_sd.sh | bash
 ```
-
-`README.md` documents the installer.
-
-`sd_gui_banner.png` is included for local reference and local extracted installs, but remote `curl` / `wget` installs use the embedded banner inside `setup_sd.sh`.
 
 ## 3. Interactive installer menu
 
