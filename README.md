@@ -5,15 +5,14 @@ Interactive remote-bash installer for Automatic1111 Stable Diffusion WebUI on Ra
 ## Index
 
 1. [Remote install](#1-remote-install)
-2. [GitHub setup](#2-github-setup)
-3. [Interactive installer menu](#3-interactive-installer-menu)
-4. [Run after install](#4-run-after-install)
-5. [First run note](#5-first-run-note)
-6. [GUI launcher](#6-gui-launcher)
-7. [Model downloads](#7-model-downloads)
-8. [Uninstall](#8-uninstall)
-9. [Included files](#9-included-files)
-10. [Notes](#10-notes)
+2. [Interactive installer menu](#2-interactive-installer-menu)
+3. [Run after install](#3-run-after-install)
+4. [First run note](#4-first-run-note)
+5. [GUI launcher](#5-gui-launcher)
+6. [Model downloads](#6-model-downloads)
+7. [Uninstall](#7-uninstall)
+8. [Included files](#8-included-files)
+9. [Notes](#9-notes)
 
 ## 1. Remote install
 
@@ -31,23 +30,7 @@ wget -qO- https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setu
 
 This installer is self-contained for remote bash installs. The GUI banner is embedded inside `setup_sd.sh`, so the remote install does not need a separate banner download.
 
-## 2. GitHub setup
-
-Place `setup_sd.sh` in the root of your GitHub repository.
-
-The installer can then be run remotely with either:
-
-```bash
-curl -sSL https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setup_sd.sh | bash
-```
-
-or
-
-```bash
-wget -qO- https://raw.githubusercontent.com/comp6062/rpi-automatic1111/main/setup_sd.sh | bash
-```
-
-## 3. Interactive installer menu
+## 2. Interactive installer menu
 
 The installer opens a menu before installing:
 
@@ -84,7 +67,7 @@ With the default location, the installer creates:
 
 If you choose a different install location, those files are created inside that folder instead.
 
-## 4. Run after install
+## 3. Run after install
 
 Use:
 
@@ -105,11 +88,11 @@ The run menu includes:
 3. Stop running - stops the running WebUI process
 4. Uninstall - removes WebUI, venv, launcher files, and shortcuts
 
-## 5. First run note
+## 4. First run note
 
 The first time you run Stable Diffusion after install, run LAN mode once while online. This allows Automatic1111 to install needed runtime files. After the first successful LAN run, offline mode can be used without checking or installing dependencies.
 
-## 6. GUI launcher
+## 5. GUI launcher
 
 If GUI launcher is enabled, the installer creates:
 
@@ -141,7 +124,7 @@ The GUI includes:
 - Uninstall
 - Open Web-UI
 
-## 7. Model downloads
+## 6. Model downloads
 
 Model downloads are optional in the installer.
 
@@ -156,7 +139,7 @@ If disabled, no models are downloaded during setup. You can add models later in:
 stable-diffusion-webui/models/Stable-diffusion/
 ```
 
-## 8. Uninstall
+## 7. Uninstall
 
 Run:
 
@@ -182,7 +165,7 @@ The uninstaller removes:
 - menu launcher
 - `/tmp/sd_gui.pid`
 
-## 9. Included files
+## 8. Included files
 
 - `setup_sd.sh` - interactive self-contained remote-bash installer
 - `sd_gui_banner.png` - GUI banner artwork for local reference/local extracted installs
@@ -190,7 +173,7 @@ The uninstaller removes:
 
 Remote install only requires `setup_sd.sh`.
 
-## 10. Notes
+## 9. Notes
 
 - This installer is intended for Raspberry Pi OS 64-bit.
 - CPU-only PyTorch is installed.
