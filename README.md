@@ -1,6 +1,17 @@
-# Raspberry Pi Stable Diffusion Installer
+# Stable Diffusion WebUI – Raspberry Pi (ARM)
 
-Interactive remote-bash installer for Automatic1111 Stable Diffusion WebUI on Raspberry Pi.
+![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi%20%2F%20ARM-blue)
+![CPU](https://img.shields.io/badge/acceleration-CPU--only-orange)
+![ARM64](https://img.shields.io/badge/ARM64-aarch64-success)
+![License](https://img.shields.io/badge/license-MIT-informational)
+
+This repository provides a **fully automated setup** for running  
+**AUTOMATIC1111 Stable Diffusion WebUI** (AI image generator), on Raspberry Pi and other ARM-based Linux systems.
+
+It supports **CPU-only inference**, is optimized for ARM environments, and includes
+a guided installer, integrated GUI launcher, bundled banner artwork, unified launcher, and clean uninstall process.
+
+---
 
 ## Index
 
@@ -100,6 +111,7 @@ If GUI launcher is enabled, the installer creates:
 .sd_gui_app.py
 .sd_gui_runner.sh
 .sd_gui_banner.png
+~/.local/share/icons/sd_icon.png
 ```
 
 These are placed in the selected install location.
@@ -110,10 +122,22 @@ If desktop shortcut is enabled, the installer creates:
 ~/Desktop/StableDiffusionGUI.desktop
 ```
 
+The desktop shortcut uses:
+
+```bash
+~/.local/share/icons/sd_icon.png
+```
+
 If menu launcher is enabled, the installer creates:
 
 ```bash
 ~/.local/share/applications/sd-gui.desktop
+```
+
+The menu launcher uses:
+
+```bash
+~/.local/share/icons/sd_icon.png
 ```
 
 The GUI includes:
@@ -169,6 +193,7 @@ The uninstaller removes:
 
 - `setup_sd.sh` - interactive self-contained remote-bash installer
 - `sd_gui_banner.png` - GUI banner artwork for local reference/local extracted installs
+- `sd_icon.png` - launcher icon used by the desktop shortcut and menu launcher
 - `README.md` - this documentation
 
 Remote install only requires `setup_sd.sh`.

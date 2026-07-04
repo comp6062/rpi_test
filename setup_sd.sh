@@ -55,23 +55,110 @@ ask_yes_no() {
 TARGET_USER="$(get_target_user)"
 USER_HOME="$(get_home_for_user "$TARGET_USER")"
 
-cat <<MENU
+DOWNLOAD_MODELS=0
+INCLUDE_GUI=1
+CREATE_DESKTOP=1
+CREATE_MENU=1
+INSTALL_ROOT="$USER_HOME"
+
+show_installer_menu() {
+  clear 2>/dev/null || true
+  cat <<MENU
 
 Stable Diffusion Raspberry Pi Installer
 =======================================
-Press Enter to accept the default shown in brackets.
+Use the menu below to choose install options.
+
+  1) Download included models:  $([ "$DOWNLOAD_MODELS" = "1" ] && echo "ON" || echo "OFF")
+  2) Install GUI launcher:      $([ "$INCLUDE_GUI" = "1" ] && echo "ON" || echo "OFF")
+  3) Create desktop shortcut:   $([ "$CREATE_DESKTOP" = "1" ] && echo "ON" || echo "OFF")
+  4) Create menu launcher:      $([ "$CREATE_MENU" = "1" ] && echo "ON" || echo "OFF")
+  5) Install files location:    $INSTALL_ROOT
+
+  6) Start install
+  q) Quit
 
 MENU
+}
 
-DOWNLOAD_MODELS="$(ask_yes_no "Download included models? [y/N]: " "0")"
-INCLUDE_GUI="$(ask_yes_no "Install GUI launcher? [Y/n]: " "1")"
-CREATE_DESKTOP="$(ask_yes_no "Create desktop shortcut? [Y/n]: " "1")"
-CREATE_MENU="$(ask_yes_no "Create menu launcher? [Y/n]: " "1")"
-INSTALL_ROOT="$(read_tty "Install files location [$USER_HOME]: " "$USER_HOME")"
-INSTALL_ROOT="${INSTALL_ROOT/#\~/$USER_HOME}"
-INSTALL_ROOT="$(eval echo "$INSTALL_ROOT")"
-INSTALL_ROOT="${INSTALL_ROOT%/}"
+pause_menu() {
+  read_tty "Press Enter to continue..." "" >/dev/null
+}
+
+while true; do
+  show_installer_menu
+  CHOICE="$(read_tty "Select an option: " "")"
+  case "${CHOICE,,}" in
+    1)
+      [ "$DOWNLOAD_MODELS" = "1" ] && DOWNLOAD_MODELS=0 || DOWNLOAD_MODELS=1
+      ;;
+    2)
+      if [ "$INCLUDE_GUI" = "1" ]; then
+        INCLUDE_GUI=0
+        CREATE_DESKTOP=0
+        CREATE_MENU=0
+      else
+        INCLUDE_GUI=1
+        CREATE_DESKTOP=1
+        CREATE_MENU=1
+      fi
+      ;;
+    3)
+      if [ "$INCLUDE_GUI" != "1" ]; then
+        echo "Desktop shortcut requires the GUI launcher."
+        pause_menu
+      else
+        [ "$CREATE_DESKTOP" = "1" ] && CREATE_DESKTOP=0 || CREATE_DESKTOP=1
+      fi
+      ;;
+    4)
+      if [ "$INCLUDE_GUI" != "1" ]; then
+        echo "Menu launcher requires the GUI launcher."
+        pause_menu
+      else
+        [ "$CREATE_MENU" = "1" ] && CREATE_MENU=0 || CREATE_MENU=1
+      fi
+      ;;
+    5)
+      NEW_ROOT="$(read_tty "Install files location [$USER_HOME]: " "$INSTALL_ROOT")"
+      NEW_ROOT="${NEW_ROOT/#\~/$USER_HOME}"
+      NEW_ROOT="$(eval echo "$NEW_ROOT")"
+      NEW_ROOT="${NEW_ROOT%/}"
+      [ -n "$NEW_ROOT" ] && INSTALL_ROOT="$NEW_ROOT"
+      ;;
+    6)
+      break
+      ;;
+    q|quit|exit)
+      echo "Install cancelled."
+      exit 0
+      ;;
+    *)
+      echo "Invalid option."
+      pause_menu
+      ;;
+  esac
+done
+
 [ -n "$INSTALL_ROOT" ] || INSTALL_ROOT="$USER_HOME"
+
+cat <<SUMMARY
+
+Install summary
+---------------
+Install files: $INSTALL_ROOT
+Models:        $([ "$DOWNLOAD_MODELS" = "1" ] && echo "on" || echo "off")
+GUI:           $([ "$INCLUDE_GUI" = "1" ] && echo "on" || echo "off")
+Desktop link:  $([ "$CREATE_DESKTOP" = "1" ] && echo "on" || echo "off")
+Menu launcher: $([ "$CREATE_MENU" = "1" ] && echo "on" || echo "off")
+
+SUMMARY
+
+CONFIRM_INSTALL="$(read_tty "Start install with these options? [Y/n]: " "y")"
+case "${CONFIRM_INSTALL,,}" in
+  y|yes|"") ;;
+  *) echo "Install cancelled."; exit 0 ;;
+esac
 
 WEBUI_DIR="$INSTALL_ROOT/stable-diffusion-webui"
 VENV_DIR="$INSTALL_ROOT/stable-diffusion-env"
@@ -248,9 +335,13 @@ if [ "$INCLUDE_GUI" = "1" ]; then
 APP_NAME="Stable Diffusion GUI"
 LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
 DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR=""
+SCRIPT_PATH="${0:-}"
+if [ -n "$SCRIPT_PATH" ] && [ -f "$SCRIPT_PATH" ]; then
+  SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+fi
 
-if [ -f "$SCRIPT_DIR/sd_gui_banner.png" ]; then
+if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/sd_gui_banner.png" ]; then
   cp "$SCRIPT_DIR/sd_gui_banner.png" "$INSTALL_ROOT/.sd_gui_banner.png"
 else
   cat <<'BANNER_EOF' | base64 -d > "$INSTALL_ROOT/.sd_gui_banner.png"
@@ -7635,7 +7726,7 @@ BANNER_EOF
 fi
 chown "$TARGET_USER:$TARGET_USER" "$INSTALL_ROOT/.sd_gui_banner.png"
 
-cat <<'EOF' > "$INSTALL_ROOT/.sd_gui_runner.sh"
+cat > "$INSTALL_ROOT/.sd_gui_runner.sh" <<EOF
 #!/bin/bash
 set -euo pipefail
 python3 "$INSTALL_ROOT/.sd_gui_app.py"
@@ -7746,7 +7837,7 @@ def force_stop():
 
 
 def uninstall():
-    run_mode(3)
+    run_mode(4)
     root.destroy()
 
 
@@ -7794,7 +7885,7 @@ def bordered(parent, bg, border, thickness=1):
 main = tk.Frame(root, bg=BG)
 main.pack(fill="both", expand=True, padx=sz(14), pady=sz(10))
 
-banner_outer, banner_inner = bordered(main, "#050916", PINK, 1)
+banner_outer, banner_inner = bordered(main, "#050916", "#050916", 0)
 banner_outer.pack(fill="x")
 banner_h = max(sz(130), min(sz(205), int(H * 0.31)))
 banner_inner.configure(height=banner_h)
@@ -7820,7 +7911,7 @@ panel_outer.pack(fill="both", expand=True, pady=(sz(10), 0))
 
 header = tk.Frame(panel, bg=PANEL)
 header.pack(fill="x", padx=sz(18), pady=(sz(9), sz(4)))
-tk.Label(header, text="🚀  Select an Action", fg=CYAN, bg=PANEL, font=font(18, "bold")).pack(anchor="w")
+tk.Label(header, text="Select an Action", fg=CYAN, bg=PANEL, font=font(18, "bold")).pack(anchor="w")
 
 bottom_h = sz(58)
 card_h = max(sz(210), H - banner_h - bottom_h - sz(116))
@@ -7867,10 +7958,17 @@ tk.Button(bottom, text="↗  Open Web-UI\nOpen the Web-UI in your browser.", com
 tk.Button(bottom, text="Exit", command=root.destroy, fg=TEXT, bg="#0b1020", activebackground="#101a30",
           activeforeground=TEXT, bd=1, relief="solid", font=font(12, "bold"), cursor="hand2").pack(side="right", padx=sz(20), ipadx=sz(44), ipady=sz(8))
 
-root.update_idletasks()
-x = max(0, (screen_w - W) // 2)
-y = max(0, (screen_h - H) // 2)
-root.geometry(f"{W}x{H}+{x}+{y}")
+def center_window():
+    root.update_idletasks()
+    x = max(0, (root.winfo_screenwidth() - W) // 2)
+    y = max(0, (root.winfo_screenheight() - H) // 2)
+    root.geometry(f"{W}x{H}+{x}+{y}")
+
+
+center_window()
+root.after_idle(center_window)
+root.after(250, center_window)
+root.after(750, center_window)
 root.mainloop()
 EOF
 
@@ -7887,6 +7985,13 @@ chmod +x "$INSTALL_ROOT/.sd_gui_runner.sh" "$INSTALL_ROOT/.sd_gui_app.py"
 chown "$TARGET_USER:$TARGET_USER" "$INSTALL_ROOT/.sd_gui_runner.sh" "$INSTALL_ROOT/.sd_gui_app.py"
 [ -f "$INSTALL_ROOT/.sd_gui_banner.png" ] && chown "$TARGET_USER:$TARGET_USER" "$INSTALL_ROOT/.sd_gui_banner.png"
 
+ICON_PATH="$USER_HOME/.local/share/icons/sd_icon.png"
+mkdir -p "$USER_HOME/.local/share/icons"
+if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/sd_icon.png" ]; then
+  cp "$SCRIPT_DIR/sd_icon.png" "$ICON_PATH"
+fi
+[ -f "$ICON_PATH" ] && chown "$TARGET_USER:$TARGET_USER" "$ICON_PATH"
+
 mkdir -p "$USER_HOME/.local/share/applications"
 mkdir -p "$USER_HOME/Desktop"
 
@@ -7895,7 +8000,7 @@ cat > "$LAUNCHER" << EOF
 Name=$APP_NAME
 Comment=Launch Stable Diffusion GUI
 Exec=$INSTALL_ROOT/.sd_gui_runner.sh
-Icon=utilities-terminal
+Icon=$ICON_PATH
 Terminal=false
 Type=Application
 Categories=Utility;
@@ -7911,13 +8016,23 @@ if [ "$INCLUDE_GUI" != "1" ] && { [ "$CREATE_MENU" = "1" ] || [ "$CREATE_DESKTOP
   APP_NAME="Stable Diffusion CLI"
   LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
   DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
-  mkdir -p "$USER_HOME/.local/share/applications" "$USER_HOME/Desktop"
+  SCRIPT_DIR=""
+  SCRIPT_PATH="${0:-}"
+  if [ -n "$SCRIPT_PATH" ] && [ -f "$SCRIPT_PATH" ]; then
+    SCRIPT_DIR="$(cd "$(dirname "$SCRIPT_PATH")" && pwd)"
+  fi
+  ICON_PATH="$USER_HOME/.local/share/icons/sd_icon.png"
+  mkdir -p "$USER_HOME/.local/share/applications" "$USER_HOME/Desktop" "$USER_HOME/.local/share/icons"
+  if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/sd_icon.png" ]; then
+    cp "$SCRIPT_DIR/sd_icon.png" "$ICON_PATH"
+  fi
+  [ -f "$ICON_PATH" ] && chown "$TARGET_USER:$TARGET_USER" "$ICON_PATH"
   cat > "$LAUNCHER" <<EOF
 [Desktop Entry]
 Name=$APP_NAME
 Comment=Launch Stable Diffusion CLI
 Exec=$RUN_SD_PATH
-Icon=utilities-terminal
+Icon=$ICON_PATH
 Terminal=true
 Type=Application
 Categories=Utility;
