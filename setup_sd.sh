@@ -7754,6 +7754,7 @@ SCRIPT = "__RUN_SD_PATH__"
 WEBUI_DIR = "__WEBUI_DIR__"
 PID_FILE = "/tmp/sd_gui.pid"
 BANNER_IMAGE = "__BANNER_PATH__"
+APP_ICON = "__ICON_PATH__"
 
 BG = "#050814"
 PANEL = "#050b18"
@@ -7767,10 +7768,21 @@ PINK = "#ff2bc2"
 RED = "#ff3048"
 TEAL = "#00a7b7"
 
-root = tk.Tk()
+root = tk.Tk(className="StableDiffusionGUI")
 root.title("Stable Diffusion GUI Launcher")
 root.configure(bg=BG)
 root.resizable(False, False)
+
+icon_img_ref = None
+if os.path.exists(APP_ICON):
+    try:
+        if Image and ImageTk:
+            icon_img_ref = ImageTk.PhotoImage(Image.open(APP_ICON))
+        else:
+            icon_img_ref = tk.PhotoImage(file=APP_ICON)
+        root.iconphoto(True, icon_img_ref)
+    except Exception:
+        icon_img_ref = None
 
 screen_w = root.winfo_screenwidth()
 screen_h = root.winfo_screenheight()
@@ -7972,6 +7984,7 @@ s = app.read_text()
 s = s.replace("__RUN_SD_PATH__", "$INSTALL_ROOT/run_sd.sh")
 s = s.replace("__WEBUI_DIR__", "$WEBUI_DIR")
 s = s.replace("__BANNER_PATH__", "$INSTALL_ROOT/.sd_gui_banner.png")
+s = s.replace("__ICON_PATH__", "$USER_HOME/.local/share/icons/hicolor/256x256/apps/sd_icon.png")
 app.write_text(s)
 PY_PATCH
 chmod +x "$INSTALL_ROOT/.sd_gui_runner.sh" "$INSTALL_ROOT/.sd_gui_app.py"
@@ -9678,6 +9691,7 @@ Name=$APP_NAME
 Comment=Launch Stable Diffusion GUI
 Exec=$INSTALL_ROOT/.sd_gui_runner.sh
 Icon=$ICON_NAME
+StartupWMClass=StableDiffusionGUI
 Terminal=false
 Type=Application
 Categories=Utility;
@@ -9732,6 +9746,7 @@ Name=$APP_NAME
 Comment=Launch Stable Diffusion CLI
 Exec=$RUN_SD_PATH
 Icon=$ICON_NAME
+StartupWMClass=StableDiffusionGUI
 Terminal=true
 Type=Application
 Categories=Utility;
