@@ -9681,27 +9681,36 @@ mkdir -p "$USER_HOME/Desktop"
 
 trust_desktop_shortcut() {
   [ -f "$DESKTOP_SHORTCUT" ] || return 0
-  chmod +x "$DESKTOP_SHORTCUT" "$LAUNCHER" 2>/dev/null || true
-  chown "$TARGET_USER:$TARGET_USER" "$LAUNCHER" "$DESKTOP_SHORTCUT" 2>/dev/null || true
+  chmod 755 "$DESKTOP_SHORTCUT" 2>/dev/null || true
+  chown "$TARGET_USER:$TARGET_USER" "$DESKTOP_SHORTCUT" 2>/dev/null || true
+  if command -v gio >/dev/null 2>&1; then
+    sudo -u "$TARGET_USER" dbus-run-session gio set "$DESKTOP_SHORTCUT" metadata::trusted true >/dev/null 2>&1 || \
+    sudo -u "$TARGET_USER" gio set "$DESKTOP_SHORTCUT" metadata::trusted true >/dev/null 2>&1 || true
+  fi
+}
 
-  mkdir -p "$USER_HOME/.config/libfm"
+configure_pcmanfm_quick_exec() {
   LIBFM_CONF="$USER_HOME/.config/libfm/libfm.conf"
+  mkdir -p "$USER_HOME/.config/libfm"
   if [ -f "$LIBFM_CONF" ]; then
     if grep -q '^quick_exec=' "$LIBFM_CONF"; then
       sed -i 's/^quick_exec=.*/quick_exec=1/' "$LIBFM_CONF"
+    elif grep -q '^\[config\]' "$LIBFM_CONF"; then
+      sed -i '/^\[config\]/a quick_exec=1' "$LIBFM_CONF"
     else
-      printf '\nquick_exec=1\n' >> "$LIBFM_CONF"
+      printf '
+[config]
+quick_exec=1
+' >> "$LIBFM_CONF"
     fi
   else
-    printf '[config]\nquick_exec=1\n' > "$LIBFM_CONF"
+    printf '[config]
+quick_exec=1
+' > "$LIBFM_CONF"
   fi
   chown "$TARGET_USER:$TARGET_USER" "$LIBFM_CONF" 2>/dev/null || true
-
-  if command -v gio >/dev/null 2>&1; then
-    TARGET_UID="$(id -u "$TARGET_USER" 2>/dev/null || true)"
-    sudo -u "$TARGET_USER" env DBUS_SESSION_BUS_ADDRESS="unix:path=/run/user/$TARGET_UID/bus" gio set -t bool "$DESKTOP_SHORTCUT" metadata::trusted true >/dev/null 2>&1 || true
-  fi
 }
+configure_pcmanfm_quick_exec
 
 cat > "$LAUNCHER" << EOF
 [Desktop Entry]
@@ -9715,6 +9724,8 @@ Categories=Utility;
 EOF
 
 cp "$LAUNCHER" "$DESKTOP_SHORTCUT"
+chmod 755 "$DESKTOP_SHORTCUT"
+chown "$TARGET_USER:$TARGET_USER" "$LAUNCHER" "$DESKTOP_SHORTCUT"
 trust_desktop_shortcut
 
 fi
@@ -9740,9 +9751,10 @@ Terminal=true
 Type=Application
 Categories=Utility;
 EOF
-  [ "$CREATE_DESKTOP" = "1" ] && cp "$LAUNCHER" "$DESKTOP_SHORTCUT" && trust_desktop_shortcut
+  [ "$CREATE_DESKTOP" = "1" ] && cp "$LAUNCHER" "$DESKTOP_SHORTCUT" && chmod 755 "$DESKTOP_SHORTCUT"
   [ "$CREATE_MENU" != "1" ] && rm -f "$LAUNCHER"
   chown "$TARGET_USER:$TARGET_USER" "$LAUNCHER" "$DESKTOP_SHORTCUT" 2>/dev/null || true
+  [ "$CREATE_DESKTOP" = "1" ] && trust_desktop_shortcut
 fi
 
 if [ "$INCLUDE_GUI" = "1" ]; then
