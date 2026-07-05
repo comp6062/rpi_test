@@ -9679,39 +9679,6 @@ install_sd_launcher_icon
 mkdir -p "$USER_HOME/.local/share/applications"
 mkdir -p "$USER_HOME/Desktop"
 
-trust_desktop_shortcut() {
-  [ -f "$DESKTOP_SHORTCUT" ] || return 0
-  chmod 755 "$DESKTOP_SHORTCUT" 2>/dev/null || true
-  chown "$TARGET_USER:$TARGET_USER" "$DESKTOP_SHORTCUT" 2>/dev/null || true
-  if command -v gio >/dev/null 2>&1; then
-    sudo -u "$TARGET_USER" dbus-run-session gio set "$DESKTOP_SHORTCUT" metadata::trusted true >/dev/null 2>&1 || \
-    sudo -u "$TARGET_USER" gio set "$DESKTOP_SHORTCUT" metadata::trusted true >/dev/null 2>&1 || true
-  fi
-}
-
-configure_pcmanfm_quick_exec() {
-  LIBFM_CONF="$USER_HOME/.config/libfm/libfm.conf"
-  mkdir -p "$USER_HOME/.config/libfm"
-  if [ -f "$LIBFM_CONF" ]; then
-    if grep -q '^quick_exec=' "$LIBFM_CONF"; then
-      sed -i 's/^quick_exec=.*/quick_exec=1/' "$LIBFM_CONF"
-    elif grep -q '^\[config\]' "$LIBFM_CONF"; then
-      sed -i '/^\[config\]/a quick_exec=1' "$LIBFM_CONF"
-    else
-      printf '
-[config]
-quick_exec=1
-' >> "$LIBFM_CONF"
-    fi
-  else
-    printf '[config]
-quick_exec=1
-' > "$LIBFM_CONF"
-  fi
-  chown "$TARGET_USER:$TARGET_USER" "$LIBFM_CONF" 2>/dev/null || true
-}
-configure_pcmanfm_quick_exec
-
 cat > "$LAUNCHER" << EOF
 [Desktop Entry]
 Name=$APP_NAME
@@ -9724,9 +9691,34 @@ Categories=Utility;
 EOF
 
 cp "$LAUNCHER" "$DESKTOP_SHORTCUT"
-chmod 755 "$DESKTOP_SHORTCUT"
+chmod +x "$DESKTOP_SHORTCUT"
 chown "$TARGET_USER:$TARGET_USER" "$LAUNCHER" "$DESKTOP_SHORTCUT"
-trust_desktop_shortcut
+
+configure_desktop_execute_prompt() {
+  set_quick_exec_value() {
+    CONF_FILE="$1"
+    CONF_SECTION="$2"
+    mkdir -p "$(dirname "$CONF_FILE")"
+    if [ -f "$CONF_FILE" ]; then
+      if grep -q '^quick_exec=' "$CONF_FILE"; then
+        sed -i 's/^quick_exec=.*/quick_exec=1/' "$CONF_FILE"
+      elif grep -q "^\[$CONF_SECTION\]" "$CONF_FILE"; then
+        sed -i "/^\[$CONF_SECTION\]/a quick_exec=1" "$CONF_FILE"
+      else
+        printf '\n[%s]\nquick_exec=1\n' "$CONF_SECTION" >> "$CONF_FILE"
+      fi
+    else
+      printf '[%s]\nquick_exec=1\n' "$CONF_SECTION" > "$CONF_FILE"
+    fi
+    chown "$TARGET_USER:$TARGET_USER" "$CONF_FILE" 2>/dev/null || true
+  }
+
+  set_quick_exec_value "$USER_HOME/.config/libfm/libfm.conf" "config"
+  set_quick_exec_value "$USER_HOME/.config/pcmanfm/LXDE-pi/pcmanfm.conf" "config"
+  set_quick_exec_value "$USER_HOME/.config/pcmanfm/LXDE/pcmanfm.conf" "config"
+  set_quick_exec_value "$USER_HOME/.config/pcmanfm/default/pcmanfm.conf" "config"
+}
+configure_desktop_execute_prompt
 
 fi
 
@@ -9751,10 +9743,9 @@ Terminal=true
 Type=Application
 Categories=Utility;
 EOF
-  [ "$CREATE_DESKTOP" = "1" ] && cp "$LAUNCHER" "$DESKTOP_SHORTCUT" && chmod 755 "$DESKTOP_SHORTCUT"
+  [ "$CREATE_DESKTOP" = "1" ] && cp "$LAUNCHER" "$DESKTOP_SHORTCUT" && chmod +x "$DESKTOP_SHORTCUT"
   [ "$CREATE_MENU" != "1" ] && rm -f "$LAUNCHER"
   chown "$TARGET_USER:$TARGET_USER" "$LAUNCHER" "$DESKTOP_SHORTCUT" 2>/dev/null || true
-  [ "$CREATE_DESKTOP" = "1" ] && trust_desktop_shortcut
 fi
 
 if [ "$INCLUDE_GUI" = "1" ]; then
@@ -9765,3 +9756,6 @@ fi
 CLEANUP_ON_FAIL=0
 ok "Setup complete."
 ok "Run: $RUN_SD_PATH"
+sync
+ok "Restarting to finalize desktop launcher configuration."
+sudo reboot
