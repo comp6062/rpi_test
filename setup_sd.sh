@@ -313,7 +313,6 @@ case "\$c" in
     rm -f "\$INSTALL_ROOT/.sd_gui_app.py"
     rm -f "\$INSTALL_ROOT/.sd_gui_banner.png"
     rm -f "$USER_HOME/.local/share/applications/sd-gui.desktop"
-    rm -f "$USER_HOME/.local/share/applications/StableDiffusionGUI.desktop"
     rm -f "$USER_HOME/Desktop/StableDiffusionGUI.desktop"
     rm -f /tmp/sd_gui.pid
     echo "Cleanup complete."
@@ -334,7 +333,7 @@ if [ "$INCLUDE_GUI" = "1" ]; then
 # GUI LAUNCHER
 # ============================================================
 APP_NAME="Stable Diffusion GUI"
-LAUNCHER="$USER_HOME/.local/share/applications/StableDiffusionGUI.desktop"
+LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
 DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
 SCRIPT_DIR=""
 SCRIPT_PATH="${0:-}"
@@ -9745,7 +9744,7 @@ fi
 
 if [ "$INCLUDE_GUI" != "1" ] && { [ "$CREATE_MENU" = "1" ] || [ "$CREATE_DESKTOP" = "1" ]; }; then
   APP_NAME="Stable Diffusion CLI"
-  LAUNCHER="$USER_HOME/.local/share/applications/StableDiffusionGUI.desktop"
+  LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
   DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
   SCRIPT_DIR=""
   SCRIPT_PATH="${0:-}"
@@ -9773,7 +9772,7 @@ fi
 
 if [ "$INCLUDE_GUI" = "1" ]; then
   [ "$CREATE_DESKTOP" != "1" ] && rm -f "$USER_HOME/Desktop/StableDiffusionGUI.desktop"
-  [ "$CREATE_MENU" != "1" ] && rm -f "$USER_HOME/.local/share/applications/sd-gui.desktop" "$USER_HOME/.local/share/applications/StableDiffusionGUI.desktop"
+  [ "$CREATE_MENU" != "1" ] && rm -f "$USER_HOME/.local/share/applications/sd-gui.desktop"
 fi
 
 CLEANUP_ON_FAIL=0
