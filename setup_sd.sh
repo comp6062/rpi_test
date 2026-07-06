@@ -313,6 +313,7 @@ case "\$c" in
     rm -f "\$INSTALL_ROOT/.sd_gui_app.py"
     rm -f "\$INSTALL_ROOT/.sd_gui_banner.png"
     rm -f "$USER_HOME/.local/share/applications/sd-gui.desktop"
+    rm -f "$USER_HOME/.local/share/applications/StableDiffusionGUI.desktop"
     rm -f "$USER_HOME/Desktop/StableDiffusionGUI.desktop"
     rm -f /tmp/sd_gui.pid
     echo "Cleanup complete."
@@ -333,7 +334,7 @@ if [ "$INCLUDE_GUI" = "1" ]; then
 # GUI LAUNCHER
 # ============================================================
 APP_NAME="Stable Diffusion GUI"
-LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
+LAUNCHER="$USER_HOME/.local/share/applications/StableDiffusionGUI.desktop"
 DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
 SCRIPT_DIR=""
 SCRIPT_PATH="${0:-}"
@@ -7729,7 +7730,8 @@ chown "$TARGET_USER:$TARGET_USER" "$INSTALL_ROOT/.sd_gui_banner.png"
 cat > "$INSTALL_ROOT/.sd_gui_runner.sh" <<EOF
 #!/bin/bash
 set -euo pipefail
-python3 "$INSTALL_ROOT/.sd_gui_app.py"
+cd "$INSTALL_ROOT"
+exec -a StableDiffusionGUI python3 "$INSTALL_ROOT/.sd_gui_app.py"
 EOF
 
 cat <<'EOF' > "$INSTALL_ROOT/.sd_gui_app.py"
@@ -7773,27 +7775,21 @@ root.title("Stable Diffusion GUI Launcher")
 root.configure(bg=BG)
 root.resizable(False, False)
 
-icon_img_refs = []
+icon_img_ref = None
 def apply_window_icon():
-    if not icon_img_refs:
-        return
-    try:
-        root.iconphoto(True, *icon_img_refs)
-        root.iconphoto(False, *icon_img_refs)
-    except Exception:
-        pass
+    global icon_img_ref
+    if os.path.exists(APP_ICON):
+        try:
+            if Image and ImageTk:
+                icon_img_ref = ImageTk.PhotoImage(Image.open(APP_ICON))
+            else:
+                icon_img_ref = tk.PhotoImage(file=APP_ICON)
+            root.iconphoto(True, icon_img_ref)
+            root.tk.call("wm", "iconphoto", root._w, icon_img_ref)
+        except Exception:
+            icon_img_ref = None
 
-if os.path.exists(APP_ICON):
-    try:
-        if Image and ImageTk:
-            base_icon = Image.open(APP_ICON).convert("RGBA")
-            for size in (256, 128, 64, 48, 32, 16):
-                icon_img_refs.append(ImageTk.PhotoImage(base_icon.resize((size, size))))
-        else:
-            icon_img_refs.append(tk.PhotoImage(file=APP_ICON))
-        apply_window_icon()
-    except Exception:
-        icon_img_refs = []
+apply_window_icon()
 
 screen_w = root.winfo_screenwidth()
 screen_h = root.winfo_screenheight()
@@ -7985,9 +7981,9 @@ center_window()
 root.after_idle(center_window)
 root.after_idle(apply_window_icon)
 root.after(250, center_window)
-root.after(500, apply_window_icon)
+root.after(250, apply_window_icon)
 root.after(750, center_window)
-root.after(1200, apply_window_icon)
+root.after(750, apply_window_icon)
 root.mainloop()
 EOF
 
@@ -8009,7 +8005,8 @@ install_sd_launcher_icon() {
   ICON_NAME="sd_icon"
   ICON_PATH="$USER_HOME/.local/share/icons/hicolor/256x256/apps/${ICON_NAME}.png"
   ICON_FALLBACK_PATH="$USER_HOME/.local/share/icons/${ICON_NAME}.png"
-  mkdir -p "$USER_HOME/.local/share/icons/hicolor/256x256/apps" "$USER_HOME/.local/share/icons"
+  ICON_PIXMAP_PATH="$USER_HOME/.local/share/pixmaps/${ICON_NAME}.png"
+  mkdir -p "$USER_HOME/.local/share/icons/hicolor/256x256/apps" "$USER_HOME/.local/share/icons" "$USER_HOME/.local/share/pixmaps"
   if [ -n "$SCRIPT_DIR" ] && [ -f "$SCRIPT_DIR/sd_icon.png" ]; then
     cp "$SCRIPT_DIR/sd_icon.png" "$ICON_PATH"
   fi
@@ -9690,8 +9687,9 @@ J8/4YXX/8WzCf3n9y+tP5voTS8rxP8D1/wPkiUIg6s7IAQAAAABJRU5ErkJggg==
 SD_ICON_PNG_B64
   fi
   cp "$ICON_PATH" "$ICON_FALLBACK_PATH"
-  chmod 644 "$ICON_PATH" "$ICON_FALLBACK_PATH" 2>/dev/null || true
-  chown "$TARGET_USER:$TARGET_USER" "$ICON_PATH" "$ICON_FALLBACK_PATH" 2>/dev/null || true
+  cp "$ICON_PATH" "$ICON_PIXMAP_PATH"
+  chmod 644 "$ICON_PATH" "$ICON_FALLBACK_PATH" "$ICON_PIXMAP_PATH" 2>/dev/null || true
+  chown "$TARGET_USER:$TARGET_USER" "$ICON_PATH" "$ICON_FALLBACK_PATH" "$ICON_PIXMAP_PATH" 2>/dev/null || true
   gtk-update-icon-cache -f -t "$USER_HOME/.local/share/icons/hicolor" >/dev/null 2>&1 || true
 }
 install_sd_launcher_icon
@@ -9704,8 +9702,9 @@ cat > "$LAUNCHER" << EOF
 Name=$APP_NAME
 Comment=Launch Stable Diffusion GUI
 Exec=$INSTALL_ROOT/.sd_gui_runner.sh
-Icon=$ICON_NAME
+Icon=$ICON_PATH
 StartupWMClass=StableDiffusionGUI
+StartupNotify=true
 Terminal=false
 Type=Application
 Categories=Utility;
@@ -9714,6 +9713,7 @@ EOF
 cp "$LAUNCHER" "$DESKTOP_SHORTCUT"
 chmod +x "$DESKTOP_SHORTCUT"
 chown "$TARGET_USER:$TARGET_USER" "$LAUNCHER" "$DESKTOP_SHORTCUT"
+update-desktop-database "$USER_HOME/.local/share/applications" >/dev/null 2>&1 || true
 
 configure_desktop_execute_prompt() {
   set_quick_exec_value() {
@@ -9745,7 +9745,7 @@ fi
 
 if [ "$INCLUDE_GUI" != "1" ] && { [ "$CREATE_MENU" = "1" ] || [ "$CREATE_DESKTOP" = "1" ]; }; then
   APP_NAME="Stable Diffusion CLI"
-  LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
+  LAUNCHER="$USER_HOME/.local/share/applications/StableDiffusionGUI.desktop"
   DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
   SCRIPT_DIR=""
   SCRIPT_PATH="${0:-}"
@@ -9759,8 +9759,9 @@ if [ "$INCLUDE_GUI" != "1" ] && { [ "$CREATE_MENU" = "1" ] || [ "$CREATE_DESKTOP
 Name=$APP_NAME
 Comment=Launch Stable Diffusion CLI
 Exec=$RUN_SD_PATH
-Icon=$ICON_NAME
+Icon=$ICON_PATH
 StartupWMClass=StableDiffusionGUI
+StartupNotify=true
 Terminal=true
 Type=Application
 Categories=Utility;
@@ -9772,7 +9773,7 @@ fi
 
 if [ "$INCLUDE_GUI" = "1" ]; then
   [ "$CREATE_DESKTOP" != "1" ] && rm -f "$USER_HOME/Desktop/StableDiffusionGUI.desktop"
-  [ "$CREATE_MENU" != "1" ] && rm -f "$USER_HOME/.local/share/applications/sd-gui.desktop"
+  [ "$CREATE_MENU" != "1" ] && rm -f "$USER_HOME/.local/share/applications/sd-gui.desktop" "$USER_HOME/.local/share/applications/StableDiffusionGUI.desktop"
 fi
 
 CLEANUP_ON_FAIL=0
