@@ -7773,16 +7773,27 @@ root.title("Stable Diffusion GUI Launcher")
 root.configure(bg=BG)
 root.resizable(False, False)
 
-icon_img_ref = None
+icon_img_refs = []
+def apply_window_icon():
+    if not icon_img_refs:
+        return
+    try:
+        root.iconphoto(True, *icon_img_refs)
+        root.iconphoto(False, *icon_img_refs)
+    except Exception:
+        pass
+
 if os.path.exists(APP_ICON):
     try:
         if Image and ImageTk:
-            icon_img_ref = ImageTk.PhotoImage(Image.open(APP_ICON))
+            base_icon = Image.open(APP_ICON).convert("RGBA")
+            for size in (256, 128, 64, 48, 32, 16):
+                icon_img_refs.append(ImageTk.PhotoImage(base_icon.resize((size, size))))
         else:
-            icon_img_ref = tk.PhotoImage(file=APP_ICON)
-        root.iconphoto(True, icon_img_ref)
+            icon_img_refs.append(tk.PhotoImage(file=APP_ICON))
+        apply_window_icon()
     except Exception:
-        icon_img_ref = None
+        icon_img_refs = []
 
 screen_w = root.winfo_screenwidth()
 screen_h = root.winfo_screenheight()
@@ -7972,8 +7983,11 @@ def center_window():
 
 center_window()
 root.after_idle(center_window)
+root.after_idle(apply_window_icon)
 root.after(250, center_window)
+root.after(500, apply_window_icon)
 root.after(750, center_window)
+root.after(1200, apply_window_icon)
 root.mainloop()
 EOF
 
