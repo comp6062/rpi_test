@@ -332,7 +332,7 @@ chown "$TARGET_USER:$TARGET_USER" "$RUN_SD_PATH"
 if [ "$INCLUDE_GUI" = "1" ]; then
 # GUI LAUNCHER
 # ============================================================
-APP_NAME="Stable Diffusion GUI"
+APP_NAME="Stable Diffusion"
 LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
 DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
 SCRIPT_DIR=""
@@ -7768,7 +7768,7 @@ RED = "#ff3048"
 TEAL = "#00a7b7"
 
 root = tk.Tk()
-root.title("Stable Diffusion GUI Launcher")
+root.title("Stable Diffusion")
 root.configure(bg=BG)
 root.resizable(False, False)
 
@@ -7802,7 +7802,7 @@ def shell_quote(text):
 
 
 def run_mode(mode):
-    cmd = f"echo Running mode {mode}; printf '%s\\n' {mode} | {shell_quote(SCRIPT)}"
+    cmd = f"echo Running mode {mode}; printf '%s\\n' {mode} | {shell_quote(SCRIPT)}; echo; echo Press ENTER to close...; read"
     proc = subprocess.Popen(["setsid", "lxterminal", "--command", f"bash -c {shell_quote(cmd)}"])
     with open(PID_FILE, "w", encoding="utf-8") as f:
         f.write(str(proc.pid))
@@ -9675,7 +9675,7 @@ mkdir -p "$USER_HOME/Desktop"
 cat > "$LAUNCHER" << EOF
 [Desktop Entry]
 Name=$APP_NAME
-Comment=Launch Stable Diffusion GUI
+Comment=Launch Stable Diffusion
 Exec=$INSTALL_ROOT/.sd_gui_runner.sh
 Icon=$ICON_NAME
 Terminal=false
