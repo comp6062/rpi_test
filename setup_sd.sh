@@ -7831,7 +7831,25 @@ def force_stop():
 
 def uninstall():
     run_mode(4)
-    root.destroy()
+
+    def _wait_for_uninstall():
+        try:
+            pid = None
+            if os.path.exists(PID_FILE):
+                with open(PID_FILE, "r", encoding="utf-8") as f:
+                    pid = int(f.read().strip())
+            if pid:
+                while True:
+                    try:
+                        os.kill(pid, 0)
+                        time.sleep(0.5)
+                    except OSError:
+                        break
+        except Exception:
+            pass
+        root.after(0, root.destroy)
+
+    threading.Thread(target=_wait_for_uninstall, daemon=True).start()
 
 
 def get_lan_ip():
