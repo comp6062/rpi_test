@@ -332,7 +332,7 @@ chown "$TARGET_USER:$TARGET_USER" "$RUN_SD_PATH"
 if [ "$INCLUDE_GUI" = "1" ]; then
 # GUI LAUNCHER
 # ============================================================
-APP_NAME="Stable Diffusion"
+APP_NAME="Stable Diffusion GUI"
 LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
 DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
 SCRIPT_DIR=""
@@ -7768,7 +7768,7 @@ RED = "#ff3048"
 TEAL = "#00a7b7"
 
 root = tk.Tk()
-root.title("Stable Diffusion")
+root.title("Stable Diffusion GUI Launcher")
 root.configure(bg=BG)
 root.resizable(False, False)
 
@@ -7831,25 +7831,7 @@ def force_stop():
 
 def uninstall():
     run_mode(4)
-
-    def _wait_for_uninstall():
-        try:
-            pid = None
-            if os.path.exists(PID_FILE):
-                with open(PID_FILE, "r", encoding="utf-8") as f:
-                    pid = int(f.read().strip())
-            if pid:
-                while True:
-                    try:
-                        os.kill(pid, 0)
-                        time.sleep(0.5)
-                    except OSError:
-                        break
-        except Exception:
-            pass
-        root.after(0, root.destroy)
-
-    threading.Thread(target=_wait_for_uninstall, daemon=True).start()
+    root.destroy()
 
 
 def get_lan_ip():
@@ -9693,7 +9675,7 @@ mkdir -p "$USER_HOME/Desktop"
 cat > "$LAUNCHER" << EOF
 [Desktop Entry]
 Name=$APP_NAME
-Comment=Launch Stable Diffusion
+Comment=Launch Stable Diffusion GUI
 Exec=$INSTALL_ROOT/.sd_gui_runner.sh
 Icon=$ICON_NAME
 Terminal=false
