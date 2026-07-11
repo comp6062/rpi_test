@@ -1,17 +1,17 @@
-# Stable Diffusion WebUI – Raspberry Pi 5+ (ARM)
+# Stable Diffusion WebUI – Raspberry Pi 5-Class (ARM)
 
-![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi%205%2B%20%2F%20ARM-blue)
+![Platform](https://img.shields.io/badge/platform-Raspberry%20Pi%205--Class%20%2F%20ARM-blue)
 ![CPU](https://img.shields.io/badge/acceleration-CPU--only-orange)
 ![ARM64](https://img.shields.io/badge/ARM64-aarch64-success)
 ![License](https://img.shields.io/badge/license-MIT-informational)
 
-A streamlined, fully automated installer for **AUTOMATIC1111 Stable Diffusion WebUI** on **Raspberry Pi 5 and newer ARM-based Raspberry Pi systems**.
+A streamlined, fully automated installer for **AUTOMATIC1111 Stable Diffusion WebUI** on **Raspberry Pi 5-class ARM-based systems** (Raspberry Pi 5, Raspberry Pi 500, and Compute Module 5).
 
 This project is designed for CPU-only inference and provides an interactive installation experience with an optional graphical launcher, desktop integration, menu integration, optional model downloads, and a clean uninstall process.
 
 > **Hardware Requirement**
 >
-> This installer is designed and supported for **Raspberry Pi 5 or newer**. Earlier Raspberry Pi models are not supported.
+> This installer is designed and supported for **Raspberry Pi 5-class hardware**: Raspberry Pi 5, Raspberry Pi 500, and Compute Module 5. Earlier Raspberry Pi models are not supported.
 
 ---
 
@@ -186,7 +186,7 @@ The uninstaller asks for confirmation before removing:
 - GUI helper files
 - Desktop shortcut
 - Menu launcher
-- `/tmp/sd_gui.pid`
+- `<installation directory>/.sd-runtime/gui.pid`
 
 ## 8. Included files
 
@@ -199,7 +199,7 @@ Remote installations require only `setup_sd.sh`.
 
 ## 9. Notes
 
-- Designed for **Raspberry Pi 5 or newer**.
+- Designed for **Raspberry Pi 5-class hardware**: Raspberry Pi 5, Raspberry Pi 500, and Compute Module 5.
 - Compatible with **Raspbian, Debian, and Ubuntu (64-bit ARM)**.
 - CPU-only PyTorch is installed.
 - The installer validates Raspberry Pi 5-class hardware, ARM64 architecture, a Raspbian/Debian/Ubuntu operating system, available RAM, and free disk space before installation. It has been tested and confirmed working on Raspberry Pi OS 64-bit (ARM64/aarch64) on a Raspberry Pi 5.
@@ -217,7 +217,7 @@ Remote installations require only `setup_sd.sh`.
 Run the included validation script from the project directory before publishing or installing:
 
 ```bash
-./tests/validate_bundle.sh
+./validate_bundle.sh
 ```
 
 It checks the installer executable permission, Bash syntax, embedded GUI Python syntax, final-path virtual-environment logic, model hash verification, and installation-scoped runtime PID configuration.

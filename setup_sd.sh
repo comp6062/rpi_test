@@ -179,7 +179,7 @@ validate_platform() {
   model="$(tr -d '\0' </proc/device-tree/model 2>/dev/null || true)"
   case "$model" in
     *"Raspberry Pi 5"*|*"Raspberry Pi 500"*|*"Raspberry Pi Compute Module 5"*) ;;
-    *) fail "Unsupported hardware: ${model:-unknown}. Raspberry Pi 5 or newer is required."; exit 1 ;;
+    *) fail "Unsupported hardware: ${model:-unknown}. Raspberry Pi 5-class hardware (Raspberry Pi 5, Raspberry Pi 500, or Compute Module 5) is required."; exit 1 ;;
   esac
 
   os_id="$(. /etc/os-release 2>/dev/null; printf '%s' "${ID:-}")"
