@@ -9841,21 +9841,3 @@ trap - ERR INT TERM
 ok "Setup complete."
 ok "Run: $RUN_SD_PATH"
 sync
-while true; do
-  printf "\nReboot now to finalize the installation? [Y/n]: "
-  read -r REBOOT_CHOICE
-  case "$REBOOT_CHOICE" in
-    ""|[Yy]|[Yy][Ee][Ss])
-      ok "Installation successful. Rebooting now."
-      sudo reboot
-      break
-      ;;
-    [Nn]|[Nn][Oo])
-      ok "Installation successful. Reboot before using Stable Diffusion."
-      break
-      ;;
-    *)
-      warn "Please answer yes or no."
-      ;;
-  esac
-done

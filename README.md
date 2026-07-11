@@ -80,8 +80,6 @@ This creates:
 
 If a custom installation directory is selected, these files are created in that location instead.
 
-At the end of a successful installation, the installer asks whether you want to **reboot now** or **reboot later** so that desktop integration, menu entries, icon caches, and launcher behavior can be fully initialized. Choosing reboot later confirms that the installation was successful and reminds you to reboot before using Stable Diffusion. After the Raspberry Pi restarts, launch Stable Diffusion normally using the installed launcher or `run_sd.sh`.
-
 ## 3. Running Stable Diffusion
 
 Launch the application with:
