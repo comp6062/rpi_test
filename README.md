@@ -80,7 +80,7 @@ This creates:
 
 If a custom installation directory is selected, these files are created in that location instead.
 
-At the end of a successful installation, the installer performs a **system reboot** so that desktop integration, menu entries, icon caches, and launcher behavior are fully initialized. After the Raspberry Pi restarts, launch Stable Diffusion normally using the installed launcher or `run_sd.sh`.
+At the end of a successful installation, the installer asks whether you want to **reboot now** or **reboot later** so that desktop integration, menu entries, icon caches, and launcher behavior can be fully initialized. Choosing reboot later confirms that the installation was successful and reminds you to reboot before using Stable Diffusion. After the Raspberry Pi restarts, launch Stable Diffusion normally using the installed launcher or `run_sd.sh`.
 
 ## 3. Running Stable Diffusion
 
@@ -204,7 +204,20 @@ Remote installations require only `setup_sd.sh`.
 - CPU-only PyTorch is installed.
 - The installer validates Raspberry Pi 5-class hardware, ARM64 architecture, a Raspbian/Debian/Ubuntu operating system, available RAM, and free disk space before installation. It has been tested and confirmed working on Raspberry Pi OS 64-bit (ARM64/aarch64) on a Raspberry Pi 5.
 - Reinstallation is staged and restores the previous working WebUI and virtual environment if installation fails.
+- The replacement virtual environment is created directly at its final path after the previous installation is backed up, avoiding broken absolute paths caused by moving a completed virtual environment.
+- Included model downloads are verified against the SHA-256 object hash supplied by Hugging Face before they are activated.
 - System packages are installed without performing a full operating-system upgrade.
 - Running WebUI processes are stopped using the installation-specific PID and working directory rather than broad process matching.
+- Runtime PID files are stored in the installation-scoped `.sd-runtime` directory instead of shared filenames in `/tmp`.
 - The installer uses the known working AUTOMATIC1111 commit validated for this project.
 - Run LAN Mode once before using Offline Mode.
+
+## Bundle validation
+
+Run the included validation script from the project directory before publishing or installing:
+
+```bash
+./tests/validate_bundle.sh
+```
+
+It checks the installer executable permission, Bash syntax, embedded GUI Python syntax, final-path virtual-environment logic, model hash verification, and installation-scoped runtime PID configuration.
