@@ -54,7 +54,7 @@ Stable Diffusion Raspberry Pi Installer
 =======================================
 Use the menu below to choose install options.
 
-  1) Download included models:  OFF
+  1) Download included models:  ON
   2) Install GUI launcher:      ON
   3) Create desktop shortcut:   ON
   4) Create menu launcher:      ON
@@ -176,7 +176,7 @@ Select:
 
 If installed in a custom location, run that installation's `run_sd.sh` and choose the uninstall option.
 
-The uninstaller removes:
+The uninstaller asks for confirmation before removing:
 
 - `stable-diffusion-webui`
 - `stable-diffusion-env`
@@ -198,7 +198,11 @@ Remote installations require only `setup_sd.sh`.
 ## 9. Notes
 
 - Designed for **Raspberry Pi 5 or newer**.
-- Intended for **Raspberry Pi OS (64-bit)**.
+- Compatible with **Raspbian, Debian, and Ubuntu (64-bit ARM)**.
 - CPU-only PyTorch is installed.
+- The installer validates Raspberry Pi 5-class hardware, ARM64 architecture, a Raspbian/Debian/Ubuntu operating system, available RAM, and free disk space before installation. It has been tested and confirmed working on Raspberry Pi OS 64-bit (ARM64/aarch64) on a Raspberry Pi 5.
+- Reinstallation is staged and restores the previous working WebUI and virtual environment if installation fails.
+- System packages are installed without performing a full operating-system upgrade.
+- Running WebUI processes are stopped using the installation-specific PID and working directory rather than broad process matching.
 - The installer uses the known working AUTOMATIC1111 commit validated for this project.
 - Run LAN Mode once before using Offline Mode.
