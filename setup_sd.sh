@@ -7802,7 +7802,10 @@ def shell_quote(text):
 
 
 def run_mode(mode):
-    cmd = f"echo Running mode {mode}; printf '%s\\n' {mode} | {shell_quote(SCRIPT)}; echo; echo Press ENTER to close...; read"
+    if str(mode) in ("3", "4"):
+        cmd = f"echo Running mode {mode}; printf '%s\\n' {mode} | {shell_quote(SCRIPT)}"
+    else:
+        cmd = f"echo Running mode {mode}; printf '%s\\n' {mode} | {shell_quote(SCRIPT)}; echo; echo Press ENTER to close...; read"
     proc = subprocess.Popen(["setsid", "lxterminal", "--command", f"bash -c {shell_quote(cmd)}"])
     with open(PID_FILE, "w", encoding="utf-8") as f:
         f.write(str(proc.pid))
