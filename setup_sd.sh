@@ -9840,4 +9840,6 @@ SWAP_STARTED=0
 trap - ERR INT TERM
 ok "Setup complete."
 ok "Run: $RUN_SD_PATH"
+[ "$CREATE_MENU" = "1" ] && ok "Menu launcher: Raspberry Pi menu > Accessories > Stable Diffusion"
+[ "$CREATE_DESKTOP" = "1" ] && ok "Desktop launcher: Double-click Stable Diffusion on the desktop"
 sync
