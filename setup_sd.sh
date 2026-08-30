@@ -314,7 +314,7 @@ python -m pip install torch torchvision torchaudio --index-url https://download.
 progress "Installing requirements..."
 python -m pip install -r requirements.txt --index-url https://pypi.org/simple
 python -m pip install pytorch-lightning==1.9.5 --index-url https://pypi.org/simple
-python -m pip install git+https://github.com/openai/CLIP.git@a1d071733d7111c9c014f024669f959182114e33 --no-deps --index-url https://pypi.org/simple
+python -m pip install --no-build-isolation git+https://github.com/openai/CLIP.git@a1d071733d7111c9c014f024669f959182114e33 --no-deps --index-url https://pypi.org/simple
 python - <<'PYVERIFY'
 import clip
 print("OpenAI CLIP import verified.")
