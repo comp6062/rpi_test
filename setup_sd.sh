@@ -313,6 +313,8 @@ progress "Installing PyTorch..."
 python -m pip install torch torchvision torchaudio --index-url https://download.pytorch.org/whl/cpu
 progress "Installing requirements..."
 python -m pip install -r requirements.txt --index-url https://pypi.org/simple
+progress "Pinning A1111 Web UI compatibility..."
+python -m pip install "fastapi==0.94.0" "pydantic==1.10.26" "starlette==0.26.1" --index-url https://pypi.org/simple
 python -m pip install pytorch-lightning==1.9.5 --index-url https://pypi.org/simple
 python -m pip install --no-build-isolation git+https://github.com/openai/CLIP.git@a1d071733d7111c9c014f024669f959182114e33 --no-deps --index-url https://pypi.org/simple
 python - <<'PYVERIFY'
