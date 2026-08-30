@@ -261,7 +261,7 @@ sudo -u "$TARGET_USER" git checkout 82a973c04367123ae98bd9abdf80d9eda9b910e2
 
 progress "Patching launch_utils..."
 sed -i 's#https://github.com/Stability-AI/stablediffusion.git#https://github.com/comp6062/Stability-AI-stablediffusion.git#g' modules/launch_utils.py
-sed -i 's/run_pip(f"install {clip_package}", "clip")/run_pip(f"install --no-build-isolation --no-use-pep517 {clip_package}", "clip")/g' modules/launch_utils.py
+sed -i 's/run_pip(f"install {clip_package}", "clip")/run_pip(f"install --no-build-isolation {clip_package}", "clip")/g' modules/launch_utils.py
 
 download_if_missing() {
   local url="$1" destination="$2" temporary="${2}.part" expected_hash actual_hash
@@ -303,9 +303,10 @@ source "$VENV_DIR/bin/activate"
 export PIP_CONFIG_FILE=/dev/null
 export PIP_DISABLE_PIP_VERSION_CHECK=1
 export PIP_NO_INPUT=1
+export PIP_NO_CACHE_DIR=1
 
 progress "Upgrading pip..."
-python -m pip install -U "pip<24.1" "setuptools<70" wheel packaging
+python -m pip install -U "pip==26.2.1" "setuptools<70" wheel packaging
 
 cd "$WEBUI_DIR"
 progress "Installing PyTorch..."
@@ -361,7 +362,7 @@ case "\$c" in
     IP="\$(get_lan_ip)"
     echo "http://\$IP:7860"
     echo "\$\$" > "\$WEBUI_PID_FILE"
-    exec "\$VENV_DIR/bin/python" launch.py --skip-torch-cuda-test --no-half --listen
+    PIP_CONFIG_FILE=/dev/null PIP_NO_CACHE_DIR=1 REQS_FILE=requirements.txt exec "\$VENV_DIR/bin/python" launch.py --skip-torch-cuda-test --no-half --listen
     ;;
   2)
     [ -x "\$VENV_DIR/bin/python" ] && [ -f "\$WEBUI_DIR/launch.py" ] || { echo "Installation is incomplete. Run LAN mode first." >&2; exit 1; }
@@ -7845,6 +7846,7 @@ RED = "#ff3048"
 TEAL = "#00a7b7"
 
 root = tk.Tk()
+root.withdraw()
 root.title("Stable Diffusion")
 root.configure(bg=BG)
 root.resizable(False, False)
@@ -8035,9 +8037,7 @@ def center_window():
 
 
 center_window()
-root.after_idle(center_window)
-root.after(250, center_window)
-root.after(750, center_window)
+root.deiconify()
 root.mainloop()
 EOF
 
@@ -9768,7 +9768,7 @@ Exec=$GUI_EXEC
 Icon=$ICON_NAME
 Terminal=false
 Type=Application
-Categories=Utility;
+Categories=Graphics;
 EOF
 
 cp "$LAUNCHER" "$DESKTOP_SHORTCUT"
@@ -9823,7 +9823,7 @@ Exec=$CLI_EXEC
 Icon=$ICON_NAME
 Terminal=true
 Type=Application
-Categories=Utility;
+Categories=Graphics;
 EOF
   [ "$CREATE_DESKTOP" = "1" ] && cp "$LAUNCHER" "$DESKTOP_SHORTCUT" && chmod +x "$DESKTOP_SHORTCUT"
   [ "$CREATE_MENU" != "1" ] && rm -f "$LAUNCHER"
@@ -9839,7 +9839,11 @@ rm -rf "$BACKUP_WEBUI_DIR" "$BACKUP_VENV_DIR"
 SWAP_STARTED=0
 trap - ERR INT TERM
 ok "Setup complete."
+if [ "$CREATE_MENU" = "1" ]; then
+  ok "Menu launcher: Applications > Graphics > $APP_NAME"
+fi
+if [ "$CREATE_DESKTOP" = "1" ]; then
+  ok "Desktop launcher: $DESKTOP_SHORTCUT"
+fi
 ok "Run: $RUN_SD_PATH"
-[ "$CREATE_MENU" = "1" ] && ok "Menu launcher: Raspberry Pi menu > Accessories > Stable Diffusion"
-[ "$CREATE_DESKTOP" = "1" ] && ok "Desktop launcher: Double-click Stable Diffusion on the desktop"
 sync
