@@ -265,12 +265,63 @@ sed -i 's/run_pip(f"install {clip_package}", "clip")/run_pip(f"install --no-buil
 
 download_if_missing() {
   local url="$1" destination="$2" temporary="${2}.part" expected_hash actual_hash
+  local headers file_size chunk_size start end expected_size actual_size chunk download_failed
+  local -a chunks=() pids=()
+
   if [ ! -f "$destination" ]; then
     mkdir -p "$(dirname "$destination")"
-    rm -f "$temporary"
-    expected_hash="$(curl -fsSIL "$url" | tr -d '\r' | awk -F': ' 'tolower($1)=="x-linked-etag" {gsub(/[" ]/, "", $2); print $2}' | tail -n1 || true)"
+    rm -f "$temporary" "${temporary}.chunk"*
+
+    headers="$(curl -fsSIL "$url" | tr -d '\r' || true)"
+    expected_hash="$(printf '%s\n' "$headers" | awk -F': ' 'tolower($1)=="x-linked-etag" {gsub(/[" ]/, "", $2); print $2}' | tail -n1)"
+    file_size="$(printf '%s\n' "$headers" | awk -F': ' 'tolower($1)=="x-linked-size" {gsub(/[[:space:]]/, "", $2); print $2}' | tail -n1)"
+
     [[ "$expected_hash" =~ ^[0-9a-fA-F]{64}$ ]] || { fail "Could not obtain a trusted SHA-256 hash for: $url"; return 1; }
-    wget --https-only --secure-protocol=TLSv1_2 -O "$temporary" "$url"
+    [[ "$file_size" =~ ^[0-9]+$ ]] && [ "$file_size" -gt 0 ] || { fail "Could not obtain model size for 5-part download: $url"; return 1; }
+
+    chunk_size=$(( (file_size + 4) / 5 ))
+    progress "Downloading model in 5 parallel pieces..."
+
+    for chunk in 0 1 2 3 4; do
+      start=$(( chunk * chunk_size ))
+      end=$(( start + chunk_size - 1 ))
+      [ "$end" -ge "$file_size" ] && end=$(( file_size - 1 ))
+      chunks[chunk]="${temporary}.chunk$((chunk + 1))"
+
+      curl -fL --retry 5 --retry-delay 2 --connect-timeout 30 \
+        --silent --show-error --range "${start}-${end}" \
+        --output "${chunks[chunk]}" "$url" &
+      pids[chunk]=$!
+    done
+
+    download_failed=0
+    for chunk in 0 1 2 3 4; do
+      wait "${pids[chunk]}" || download_failed=1
+    done
+    if [ "$download_failed" -ne 0 ]; then
+      rm -f "$temporary" "${temporary}.chunk"*
+      fail "One of the 5 model download pieces failed: $url"
+      return 1
+    fi
+
+    for chunk in 0 1 2 3 4; do
+      start=$(( chunk * chunk_size ))
+      end=$(( start + chunk_size - 1 ))
+      [ "$end" -ge "$file_size" ] && end=$(( file_size - 1 ))
+      expected_size=$(( end - start + 1 ))
+      actual_size="$(stat -c '%s' "${chunks[chunk]}" 2>/dev/null || echo 0)"
+      [ "$actual_size" -eq "$expected_size" ] || {
+        rm -f "$temporary" "${temporary}.chunk"*
+        fail "Model download piece $((chunk + 1)) has the wrong size: $url"
+        return 1
+      }
+    done
+
+    cat "${chunks[@]}" > "$temporary"
+    rm -f "${chunks[@]}"
+
+    actual_size="$(stat -c '%s' "$temporary" 2>/dev/null || echo 0)"
+    [ "$actual_size" -eq "$file_size" ] || { rm -f "$temporary"; fail "Combined model file has the wrong size: $url"; return 1; }
     [ -s "$temporary" ] || { rm -f "$temporary"; fail "Downloaded file is empty: $url"; return 1; }
     actual_hash="$(sha256sum "$temporary" | awk '{print $1}')"
     [ "${actual_hash,,}" = "${expected_hash,,}" ] || { rm -f "$temporary"; fail "SHA-256 verification failed: $url"; return 1; }
