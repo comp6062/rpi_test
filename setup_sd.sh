@@ -37,6 +37,18 @@ read_tty() {
   echo "${answer:-$default}"
 }
 
+read_path_tty() {
+  local prompt="$1"
+  local default="$2"
+  local answer=""
+  if [ -r /dev/tty ]; then
+    read -e -r -p "$prompt" answer </dev/tty || true
+  elif [ -t 0 ]; then
+    read -e -r -p "$prompt" answer || true
+  fi
+  echo "${answer:-$default}"
+}
+
 read_menu_key() {
   local prompt="$1"
   local key=""
@@ -223,7 +235,7 @@ while true; do
       fi
       ;;
     5)
-      NEW_ROOT="$(read_tty "Install files location [$USER_HOME]: " "$INSTALL_ROOT")"
+      NEW_ROOT="$(read_path_tty "Install files location [$USER_HOME]: " "$INSTALL_ROOT")"
       case "$NEW_ROOT" in
         "~") NEW_ROOT="$USER_HOME" ;;
         "~/"*) NEW_ROOT="$USER_HOME/${NEW_ROOT#~/}" ;;
