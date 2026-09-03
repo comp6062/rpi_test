@@ -56,6 +56,8 @@ TARGET_USER="$(get_target_user)"
 USER_HOME="$(get_home_for_user "$TARGET_USER")"
 
 DOWNLOAD_MODELS=1
+DOWNLOAD_CYBERREALISTIC=1
+DOWNLOAD_REALISTIC_VISION=1
 INCLUDE_GUI=1
 CREATE_DESKTOP=1
 CREATE_MENU=1
@@ -83,6 +85,94 @@ MENU
 
 pause_menu() {
   read_tty "Press Enter to continue..." "" >/dev/null
+}
+
+select_models() {
+  local cursor=0
+  local key=""
+  local key_rest=""
+  local cursor_1=" "
+  local cursor_2=" "
+
+  while true; do
+    [ "$cursor" -eq 0 ] && cursor_1=">" || cursor_1=" "
+    [ "$cursor" -eq 1 ] && cursor_2=">" || cursor_2=" "
+
+    clear 2>/dev/null || true
+    cat <<MENU
+
+Included model selection
+========================
+Use Up/Down to move. Press Space or Enter to toggle the highlighted model.
+
+  $cursor_1 $([ "$DOWNLOAD_CYBERREALISTIC" = "1" ] && echo "[X]" || echo "[ ]") CyberRealistic_V7.0_FP16.safetensors
+  $cursor_2 $([ "$DOWNLOAD_REALISTIC_VISION" = "1" ] && echo "[X]" || echo "[ ]") Realistic_Vision_V5.1-inpainting.safetensors
+
+  c) Continue
+  b) Back to install options
+  q) Quit
+
+MENU
+
+    key=""
+    if [ -r /dev/tty ]; then
+      IFS= read -rsn1 key </dev/tty || true
+      if [ "$key" = $'\e' ]; then
+        key_rest=""
+        IFS= read -rsn2 -t 0.2 key_rest </dev/tty || true
+        key+="$key_rest"
+      fi
+    elif [ -t 0 ]; then
+      IFS= read -rsn1 key || true
+      if [ "$key" = $'\e' ]; then
+        key_rest=""
+        IFS= read -rsn2 -t 0.2 key_rest || true
+        key+="$key_rest"
+      fi
+    fi
+
+    case "$key" in
+      $'\e[A')
+        cursor=0
+        ;;
+      $'\e[B')
+        cursor=1
+        ;;
+      " "|"")
+        if [ "$cursor" -eq 0 ]; then
+          [ "$DOWNLOAD_CYBERREALISTIC" = "1" ] && DOWNLOAD_CYBERREALISTIC=0 || DOWNLOAD_CYBERREALISTIC=1
+        else
+          [ "$DOWNLOAD_REALISTIC_VISION" = "1" ] && DOWNLOAD_REALISTIC_VISION=0 || DOWNLOAD_REALISTIC_VISION=1
+        fi
+        ;;
+      c|C)
+        if [ "$DOWNLOAD_CYBERREALISTIC" = "1" ] || [ "$DOWNLOAD_REALISTIC_VISION" = "1" ]; then
+          return 0
+        fi
+        echo "Select at least one model while model downloads are ON."
+        pause_menu
+        ;;
+      b|B)
+        return 1
+        ;;
+      q|Q)
+        echo "Install cancelled."
+        exit 0
+        ;;
+    esac
+  done
+}
+
+selected_models_label() {
+  if [ "$DOWNLOAD_MODELS" != "1" ]; then
+    echo "off"
+  elif [ "$DOWNLOAD_CYBERREALISTIC" = "1" ] && [ "$DOWNLOAD_REALISTIC_VISION" = "1" ]; then
+    echo "on - CyberRealistic + Realistic Vision"
+  elif [ "$DOWNLOAD_CYBERREALISTIC" = "1" ]; then
+    echo "on - CyberRealistic"
+  else
+    echo "on - Realistic Vision"
+  fi
 }
 
 while true; do
@@ -129,6 +219,11 @@ while true; do
       [ -n "$NEW_ROOT" ] && INSTALL_ROOT="$NEW_ROOT"
       ;;
     6)
+      if [ "$DOWNLOAD_MODELS" = "1" ]; then
+        if ! select_models; then
+          continue
+        fi
+      fi
       break
       ;;
     q|quit|exit)
@@ -149,7 +244,7 @@ cat <<SUMMARY
 Install summary
 ---------------
 Install files: $INSTALL_ROOT
-Models:        $([ "$DOWNLOAD_MODELS" = "1" ] && echo "on" || echo "off")
+Models:        $(selected_models_label)
 GUI:           $([ "$INCLUDE_GUI" = "1" ] && echo "on" || echo "off")
 Desktop link:  $([ "$CREATE_DESKTOP" = "1" ] && echo "on" || echo "off")
 Menu launcher: $([ "$CREATE_MENU" = "1" ] && echo "on" || echo "off")
@@ -210,7 +305,7 @@ cat <<SUMMARY
 Install summary
 ---------------
 Install files: $INSTALL_ROOT
-Models:        $([ "$DOWNLOAD_MODELS" = "1" ] && echo "on" || echo "off")
+Models:        $(selected_models_label)
 GUI:           $([ "$INCLUDE_GUI" = "1" ] && echo "on" || echo "off")
 Desktop link:  $([ "$CREATE_DESKTOP" = "1" ] && echo "on" || echo "off")
 Menu launcher: $([ "$CREATE_MENU" = "1" ] && echo "on" || echo "off")
@@ -373,13 +468,17 @@ download_if_missing() {
 if [ "$DOWNLOAD_MODELS" = "1" ]; then
   progress "Downloading models..."
 
-  download_if_missing \
-  "https://huggingface.co/cyberdelia/CyberRealistic/resolve/main/CyberRealistic_V7.0_FP16.safetensors" \
-  "$STAGE_WEBUI_DIR/models/Stable-diffusion/CyberRealistic_V7.0_FP16.safetensors"
+  if [ "$DOWNLOAD_CYBERREALISTIC" = "1" ]; then
+    download_if_missing \
+    "https://huggingface.co/cyberdelia/CyberRealistic/resolve/main/CyberRealistic_V7.0_FP16.safetensors" \
+    "$STAGE_WEBUI_DIR/models/Stable-diffusion/CyberRealistic_V7.0_FP16.safetensors"
+  fi
 
-  download_if_missing \
-  "https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE/resolve/main/Realistic_Vision_V5.1-inpainting.safetensors" \
-  "$STAGE_WEBUI_DIR/models/Stable-diffusion/Realistic_Vision_V5.1-inpainting.safetensors"
+  if [ "$DOWNLOAD_REALISTIC_VISION" = "1" ]; then
+    download_if_missing \
+    "https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE/resolve/main/Realistic_Vision_V5.1-inpainting.safetensors" \
+    "$STAGE_WEBUI_DIR/models/Stable-diffusion/Realistic_Vision_V5.1-inpainting.safetensors"
+  fi
 fi
 
 progress "Activating completed installation..."
