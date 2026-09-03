@@ -37,6 +37,19 @@ read_tty() {
   echo "${answer:-$default}"
 }
 
+read_menu_key() {
+  local prompt="$1"
+  local key=""
+  if [ -r /dev/tty ]; then
+    printf '%s' "$prompt" >/dev/tty
+    IFS= read -rsn1 key </dev/tty || true
+  elif [ -t 0 ]; then
+    printf '%s' "$prompt"
+    IFS= read -rsn1 key || true
+  fi
+  echo "$key"
+}
+
 ask_yes_no() {
   local prompt="$1"
   local default="$2"
@@ -177,7 +190,7 @@ selected_models_label() {
 
 while true; do
   show_installer_menu
-  CHOICE="$(read_tty "Select an option: " "")"
+  CHOICE="$(read_menu_key "Select an option: ")"
   case "${CHOICE,,}" in
     1)
       [ "$DOWNLOAD_MODELS" = "1" ] && DOWNLOAD_MODELS=0 || DOWNLOAD_MODELS=1
