@@ -73,7 +73,7 @@ Use the menu below to choose install options.
 
   1) Download included models:  $([ "$DOWNLOAD_MODELS" = "1" ] && echo "ON" || echo "OFF")
   2) Install GUI launcher:      $([ "$INCLUDE_GUI" = "1" ] && echo "ON" || echo "OFF")
-  3) Create desktop shortcut:   $([ "$CREATE_DESKTOP" = "1" ] && echo "ON" || echo "OFF")
+  3) Create desktop Icon:   $([ "$CREATE_DESKTOP" = "1" ] && echo "ON" || echo "OFF")
   4) Create menu launcher:      $([ "$CREATE_MENU" = "1" ] && echo "ON" || echo "OFF")
   5) Install files location:    $INSTALL_ROOT
 
@@ -195,7 +195,7 @@ while true; do
       ;;
     3)
       if [ "$INCLUDE_GUI" != "1" ]; then
-        echo "Desktop shortcut requires the GUI launcher."
+        echo "Desktop Icon requires the GUI launcher."
         pause_menu
       else
         [ "$CREATE_DESKTOP" = "1" ] && CREATE_DESKTOP=0 || CREATE_DESKTOP=1
