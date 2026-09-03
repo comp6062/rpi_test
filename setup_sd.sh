@@ -246,7 +246,7 @@ Install summary
 Install files: $INSTALL_ROOT
 Models:        $(selected_models_label)
 GUI:           $([ "$INCLUDE_GUI" = "1" ] && echo "on" || echo "off")
-Desktop link:  $([ "$CREATE_DESKTOP" = "1" ] && echo "on" || echo "off")
+Desktop Icon:  $([ "$CREATE_DESKTOP" = "1" ] && echo "on" || echo "off")
 Menu launcher: $([ "$CREATE_MENU" = "1" ] && echo "on" || echo "off")
 
 SUMMARY
@@ -307,7 +307,7 @@ Install summary
 Install files: $INSTALL_ROOT
 Models:        $(selected_models_label)
 GUI:           $([ "$INCLUDE_GUI" = "1" ] && echo "on" || echo "off")
-Desktop link:  $([ "$CREATE_DESKTOP" = "1" ] && echo "on" || echo "off")
+Desktop Icon:  $([ "$CREATE_DESKTOP" = "1" ] && echo "on" || echo "off")
 Menu launcher: $([ "$CREATE_MENU" = "1" ] && echo "on" || echo "off")
 
 SUMMARY
