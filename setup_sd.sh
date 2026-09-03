@@ -278,6 +278,7 @@ download_if_missing() {
     [[ "$file_size" =~ ^[0-9]+$ ]] && [ "$file_size" -gt 0 ] || { fail "Could not obtain model size for 5-part download: $url"; return 1; }
 
     chunk_size=$(( (file_size + 4) / 5 ))
+    echo "  $(basename "$destination")"
     printf '\r\033[K  Model download   0%% [P1:-----|P2:-----|P3:-----|P4:-----|P5:-----]'
 
     for chunk in 0 1 2 3 4; do
