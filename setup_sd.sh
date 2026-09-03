@@ -41,11 +41,69 @@ read_path_tty() {
   local prompt="$1"
   local default="$2"
   local answer=""
+  local key=""
+  local match=""
+  local common=""
+  local candidate=""
+  local i=0
+  local -a matches=()
+
   if [ -r /dev/tty ]; then
-    read -e -r -p "$prompt" answer </dev/tty || true
+    printf '%s' "$prompt" >/dev/tty
+    while true; do
+      IFS= read -rsn1 key </dev/tty || true
+      case "$key" in
+        "")
+          printf '\n' >/dev/tty
+          break
+          ;;
+        $'\t')
+          matches=()
+          while IFS= read -r match; do
+            [ -n "$match" ] && matches+=("$match")
+          done < <(compgen -f -- "$answer")
+
+          if [ "${#matches[@]}" -eq 1 ]; then
+            candidate="${matches[0]}"
+            [ -d "$candidate" ] && candidate="${candidate%/}/"
+          elif [ "${#matches[@]}" -gt 1 ]; then
+            common="${matches[0]}"
+            for match in "${matches[@]:1}"; do
+              i=0
+              while [ "$i" -lt "${#common}" ] && [ "$i" -lt "${#match}" ] && [ "${common:i:1}" = "${match:i:1}" ]; do
+                i=$((i + 1))
+              done
+              common="${common:0:i}"
+            done
+            candidate="$common"
+          else
+            candidate="$answer"
+          fi
+
+          if [ "$candidate" != "$answer" ] && [[ "$candidate" == "$answer"* ]]; then
+            printf '%s' "${candidate:${#answer}}" >/dev/tty
+            answer="$candidate"
+          else
+            printf '\a' >/dev/tty
+          fi
+          ;;
+        $'\177'|$'\b')
+          if [ -n "$answer" ]; then
+            answer="${answer%?}"
+            printf '\b \b' >/dev/tty
+          fi
+          ;;
+        *)
+          answer+="$key"
+          printf '%s' "$key" >/dev/tty
+          ;;
+      esac
+    done
   elif [ -t 0 ]; then
-    read -e -r -p "$prompt" answer || true
+    printf '%s' "$prompt"
+    IFS= read -r answer || true
   fi
+
   echo "${answer:-$default}"
 }
 
