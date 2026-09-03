@@ -160,8 +160,8 @@ Use the menu below to choose install options.
   4) Create menu launcher:      $([ "$CREATE_MENU" = "1" ] && echo "ON" || echo "OFF")
   5) Install files location:    $INSTALL_ROOT
 
-  s) Start install
-  q) Quit
+  S) Start install
+  Q) Quit
 
 MENU
 }
@@ -191,9 +191,9 @@ Use Up/Down to move. Press Space or Enter to toggle the highlighted model.
   $cursor_1 $([ "$DOWNLOAD_CYBERREALISTIC" = "1" ] && echo "[X]" || echo "[ ]") CyberRealistic_V7.0_FP16.safetensors (2.13 GB)
   $cursor_2 $([ "$DOWNLOAD_REALISTIC_VISION" = "1" ] && echo "[X]" || echo "[ ]") Realistic_Vision_V5.1-inpainting.safetensors (4.27 GB)
 
-  c) Continue
-  b) Back to install options
-  q) Quit
+  C) Continue
+  B) Back to install options
+  Q) Quit
 
 MENU
 
