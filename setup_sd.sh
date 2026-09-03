@@ -90,7 +90,7 @@ Use the menu below to choose install options.
   4) Create menu launcher:      $([ "$CREATE_MENU" = "1" ] && echo "ON" || echo "OFF")
   5) Install files location:    $INSTALL_ROOT
 
-  6) Start install
+  s) Start install
   q) Quit
 
 MENU
@@ -231,7 +231,7 @@ while true; do
       NEW_ROOT="${NEW_ROOT%/}"
       [ -n "$NEW_ROOT" ] && INSTALL_ROOT="$NEW_ROOT"
       ;;
-    6)
+    s)
       if [ "$DOWNLOAD_MODELS" = "1" ]; then
         if ! select_models; then
           continue
