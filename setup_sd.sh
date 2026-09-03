@@ -172,7 +172,7 @@ BACKUP_VENV_DIR="$INSTALL_ROOT/.sd-backup-env-$$"
 SWAP_STARTED=0
 
 validate_platform() {
-  local arch model os_id os_version available_kb required_kb mem_kb
+  local arch model os_id os_version mem_kb
   arch="$(uname -m)"
   [ "$arch" = "aarch64" ] || { fail "Unsupported architecture: $arch. Raspberry Pi OS 64-bit (aarch64) is required."; exit 1; }
 
@@ -188,10 +188,6 @@ validate_platform() {
     raspbian|debian|ubuntu) ;;
     *) fail "Unsupported operating system: ${os_id:-unknown}. Raspbian, Debian, or Ubuntu is required."; exit 1 ;;
   esac
-
-  available_kb="$(df -Pk "$INSTALL_ROOT" | awk 'NR==2 {print $4}')"
-  required_kb=$(( DOWNLOAD_MODELS == 1 ? 25 * 1024 * 1024 : 15 * 1024 * 1024 ))
-  [ "${available_kb:-0}" -ge "$required_kb" ] || { fail "Insufficient free disk space. At least $((required_kb / 1024 / 1024)) GiB is required."; exit 1; }
 
   mem_kb="$(awk '/MemTotal:/ {print $2}' /proc/meminfo)"
   [ "${mem_kb:-0}" -ge $((4 * 1024 * 1024)) ] || { fail "At least 4 GiB of RAM is required."; exit 1; }
