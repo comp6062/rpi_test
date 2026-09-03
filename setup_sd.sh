@@ -262,7 +262,9 @@ sed -i 's/run_pip(f"install {clip_package}", "clip")/run_pip(f"install --no-buil
 download_if_missing() {
   local url="$1" destination="$2" temporary="${2}.part" expected_hash actual_hash
   local headers file_size chunk_size start end expected_size actual_size chunk download_failed
-  local -a chunks=() pids=()
+  local total_downloaded overall_pct part_pct filled empty fill_text empty_text progress_line running proc_state
+  local bar_width=5
+  local -a chunks=() pids=() part_pcts=(0 0 0 0 0) part_bars=("-----" "-----" "-----" "-----" "-----")
 
   if [ ! -f "$destination" ]; then
     mkdir -p "$(dirname "$destination")"
@@ -276,7 +278,8 @@ download_if_missing() {
     [[ "$file_size" =~ ^[0-9]+$ ]] && [ "$file_size" -gt 0 ] || { fail "Could not obtain model size for 5-part download: $url"; return 1; }
 
     chunk_size=$(( (file_size + 4) / 5 ))
-    progress "Downloading model in 5 parallel pieces..."
+    echo "  Pieces: P1=0-20% | P2=20-40% | P3=40-60% | P4=60-80% | P5=80-100%"
+    printf '\r\033[K  Model download   0%% [P1:-----|P2:-----|P3:-----|P4:-----|P5:-----]'
 
     for chunk in 0 1 2 3 4; do
       start=$(( chunk * chunk_size ))
@@ -289,6 +292,48 @@ download_if_missing() {
         --output "${chunks[chunk]}" "$url" &
       pids[chunk]=$!
     done
+
+    while true; do
+      total_downloaded=0
+      running=0
+
+      for chunk in 0 1 2 3 4; do
+        start=$(( chunk * chunk_size ))
+        end=$(( start + chunk_size - 1 ))
+        [ "$end" -ge "$file_size" ] && end=$(( file_size - 1 ))
+        expected_size=$(( end - start + 1 ))
+        actual_size="$(stat -c '%s' "${chunks[chunk]}" 2>/dev/null || echo 0)"
+        [ "$actual_size" -gt "$expected_size" ] && actual_size="$expected_size"
+
+        total_downloaded=$(( total_downloaded + actual_size ))
+        part_pct=$(( actual_size * 100 / expected_size ))
+        part_pcts[chunk]="$part_pct"
+
+        filled=$(( part_pct * bar_width / 100 ))
+        [ "$part_pct" -gt 0 ] && [ "$filled" -eq 0 ] && filled=1
+        empty=$(( bar_width - filled ))
+        printf -v fill_text '%*s' "$filled" ''
+        printf -v empty_text '%*s' "$empty" ''
+        fill_text="${fill_text// /#}"
+        empty_text="${empty_text// /-}"
+        part_bars[chunk]="${fill_text}${empty_text}"
+
+        if [ -r "/proc/${pids[chunk]}/stat" ]; then
+          proc_state="$(awk '{print $3}' "/proc/${pids[chunk]}/stat" 2>/dev/null || true)"
+          [ -n "$proc_state" ] && [ "$proc_state" != "Z" ] && running=1
+        fi
+      done
+
+      overall_pct=$(( total_downloaded * 100 / file_size ))
+      [ "$overall_pct" -gt 100 ] && overall_pct=100
+      printf -v progress_line '  Model download %3d%% [P1:%s|P2:%s|P3:%s|P4:%s|P5:%s]' \
+        "$overall_pct" "${part_bars[0]}" "${part_bars[1]}" "${part_bars[2]}" "${part_bars[3]}" "${part_bars[4]}"
+      printf '\r\033[K%s' "$progress_line"
+
+      [ "$running" -eq 0 ] && break
+      sleep 0.5
+    done
+    printf '\n'
 
     download_failed=0
     for chunk in 0 1 2 3 4; do
