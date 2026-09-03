@@ -73,7 +73,7 @@ Use the menu below to choose install options.
 
   1) Download included models:  $([ "$DOWNLOAD_MODELS" = "1" ] && echo "ON" || echo "OFF")
   2) Install GUI launcher:      $([ "$INCLUDE_GUI" = "1" ] && echo "ON" || echo "OFF")
-  3) Create desktop Icon:   $([ "$CREATE_DESKTOP" = "1" ] && echo "ON" || echo "OFF")
+  3) Create desktop Icon:       $([ "$CREATE_DESKTOP" = "1" ] && echo "ON" || echo "OFF")
   4) Create menu launcher:      $([ "$CREATE_MENU" = "1" ] && echo "ON" || echo "OFF")
   5) Install files location:    $INSTALL_ROOT
 
