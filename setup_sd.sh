@@ -452,6 +452,7 @@ download_if_missing() {
   local url="$1" destination="$2" temporary="${2}.part" expected_hash actual_hash
   local headers file_size display_size chunk_size start end expected_size actual_size chunk download_failed
   local total_downloaded overall_pct part_pct filled empty fill_text empty_text progress_line running proc_state
+  local last_total last_ns now_ns elapsed_ms delta_bytes speed_bps speed_text
   local bar_width=5
   local -a chunks=() pids=() part_pcts=(0 0 0 0 0) part_bars=("-----" "-----" "-----" "-----" "-----")
 
@@ -469,7 +470,9 @@ download_if_missing() {
     chunk_size=$(( (file_size + 4) / 5 ))
     display_size="$(awk -v bytes="$file_size" 'BEGIN { printf "%.2f GB", bytes / 1000000000 }')"
     echo "  $(basename "$destination") ($display_size)"
-    printf '\r\033[K  Model download   0%% [P1:-----|P2:-----|P3:-----|P4:-----|P5:-----]'
+    printf '\r\033[K  Model download   0%% [P1:-----|P2:-----|P3:-----|P4:-----|P5:-----]  Speed: 0.00 MB/s'
+    last_total=0
+    last_ns="$(date +%s%N)"
 
     for chunk in 0 1 2 3 4; do
       start=$(( chunk * chunk_size ))
@@ -516,8 +519,22 @@ download_if_missing() {
 
       overall_pct=$(( total_downloaded * 100 / file_size ))
       [ "$overall_pct" -gt 100 ] && overall_pct=100
-      printf -v progress_line '  Model download %3d%% [P1:%s|P2:%s|P3:%s|P4:%s|P5:%s]' \
-        "$overall_pct" "${part_bars[0]}" "${part_bars[1]}" "${part_bars[2]}" "${part_bars[3]}" "${part_bars[4]}"
+
+      now_ns="$(date +%s%N)"
+      elapsed_ms=$(( (now_ns - last_ns) / 1000000 ))
+      if [ "$elapsed_ms" -gt 0 ]; then
+        delta_bytes=$(( total_downloaded - last_total ))
+        [ "$delta_bytes" -lt 0 ] && delta_bytes=0
+        speed_bps=$(( delta_bytes * 1000 / elapsed_ms ))
+        speed_text="$(awk -v bps="$speed_bps" 'BEGIN { printf "%.2f MB/s", bps / 1000000 }')"
+        last_total="$total_downloaded"
+        last_ns="$now_ns"
+      else
+        speed_text="0.00 MB/s"
+      fi
+
+      printf -v progress_line '  Model download %3d%% [P1:%s|P2:%s|P3:%s|P4:%s|P5:%s]  Speed: %s' \
+        "$overall_pct" "${part_bars[0]}" "${part_bars[1]}" "${part_bars[2]}" "${part_bars[3]}" "${part_bars[4]}" "$speed_text"
       printf '\r\033[K%s' "$progress_line"
 
       [ "$running" -eq 0 ] && break
