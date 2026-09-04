@@ -334,9 +334,17 @@ Menu launcher: $([ "$CREATE_MENU" = "1" ] && echo "on" || echo "off")
 
 SUMMARY
 
-CONFIRM_INSTALL="$(read_tty "Start install with these options? [Y/n]: " "y")"
+CONFIRM_INSTALL=""
+if [ -r /dev/tty ]; then
+  IFS= read -r -n1 -p "Start install with these options? [Y/n]: " CONFIRM_INSTALL </dev/tty || true
+  printf '\n' >/dev/tty
+elif [ -t 0 ]; then
+  IFS= read -r -n1 -p "Start install with these options? [Y/n]: " CONFIRM_INSTALL || true
+  printf '\n'
+fi
+CONFIRM_INSTALL="${CONFIRM_INSTALL:-y}"
 case "${CONFIRM_INSTALL,,}" in
-  y|yes|"") ;;
+  y|"") ;;
   *) echo "Install cancelled."; exit 0 ;;
 esac
 
