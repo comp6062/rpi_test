@@ -493,6 +493,7 @@ download_if_missing() {
     printf '\033[2K\r%s' "$progress_line"
     last_total=0
     last_ns="$(date +%s%N)"
+    speed_text="0.00 MB/s"
 
     for chunk in 0 1 2 3 4; do
       start=$(( chunk * chunk_size ))
@@ -542,15 +543,13 @@ download_if_missing() {
 
       now_ns="$(date +%s%N)"
       elapsed_ms=$(( (now_ns - last_ns) / 1000000 ))
-      if [ "$elapsed_ms" -gt 0 ]; then
+      if [ "$elapsed_ms" -ge 1000 ]; then
         delta_bytes=$(( total_downloaded - last_total ))
         [ "$delta_bytes" -lt 0 ] && delta_bytes=0
         speed_bps=$(( delta_bytes * 1000 / elapsed_ms ))
         speed_text="$(awk -v bps="$speed_bps" 'BEGIN { printf "%.2f MB/s", bps / 1000000 }')"
         last_total="$total_downloaded"
         last_ns="$now_ns"
-      else
-        speed_text="0.00 MB/s"
       fi
 
       printf -v progress_line '  Model download %3d%% [P1:%s|P2:%s|P3:%s|P4:%s|P5:%s]  Speed: %s' \
@@ -558,7 +557,7 @@ download_if_missing() {
       printf '\033[2K\r%s' "$progress_line"
 
       [ "$running" -eq 0 ] && break
-      sleep 1.5
+      sleep 0.5
     done
     printf '\n'
 
