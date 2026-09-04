@@ -156,6 +156,7 @@ Use the menu below to choose install options.
 
   1) Download included models:  $([ "$DOWNLOAD_MODELS" = "1" ] && echo "ON" || echo "OFF")
   2) Install GUI launcher:      $([ "$INCLUDE_GUI" = "1" ] && echo "ON" || echo "OFF")
+     (reboot required)
   3) Create desktop icon:       $([ "$CREATE_DESKTOP" = "1" ] && echo "ON" || echo "OFF")
   4) Create menu launcher:      $([ "$CREATE_MENU" = "1" ] && echo "ON" || echo "OFF")
   5) Install files location:    $INSTALL_ROOT
@@ -10133,3 +10134,24 @@ if [ "$CREATE_DESKTOP" = "1" ]; then
 fi
 ok "Run: $RUN_SD_PATH"
 sync
+
+if [ "$INCLUDE_GUI" = "1" ]; then
+  REBOOT_NOW=""
+  if [ -r /dev/tty ]; then
+    IFS= read -r -n1 -p "Reboot now to complete GUI setup? [y/N]: " REBOOT_NOW </dev/tty || true
+    printf '\n' >/dev/tty
+  elif [ -t 0 ]; then
+    IFS= read -r -n1 -p "Reboot now to complete GUI setup? [y/N]: " REBOOT_NOW || true
+    printf '\n'
+  fi
+  case "${REBOOT_NOW,,}" in
+    y)
+      ok "Rebooting..."
+      sync
+      sudo reboot
+      ;;
+    *)
+      ok "Reboot skipped. Reboot before using the GUI launcher."
+      ;;
+  esac
+fi
