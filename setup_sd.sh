@@ -558,7 +558,7 @@ download_if_missing() {
       printf '\033[2K\r%s' "$progress_line"
 
       [ "$running" -eq 0 ] && break
-      sleep 0.5
+      sleep 1.5
     done
     printf '\n'
 
