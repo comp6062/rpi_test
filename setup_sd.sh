@@ -450,15 +450,14 @@ sed -i 's/run_pip(f"install {clip_package}", "clip")/run_pip(f"install --no-buil
 
 download_if_missing() {
   local url="$1" destination="$2" temporary="${2}.part" expected_hash actual_hash
-  local headers file_size chunk_size start end expected_size actual_size chunk
+  local headers file_size chunk_size start end expected_size actual_size chunk download_failed
   local total_downloaded overall_pct part_pct filled empty fill_text empty_text progress_line running proc_state
-  local resume_start all_complete retry_round max_retry_rounds=20
   local bar_width=5
   local -a chunks=() pids=() part_pcts=(0 0 0 0 0) part_bars=("-----" "-----" "-----" "-----" "-----")
 
   if [ ! -f "$destination" ]; then
     mkdir -p "$(dirname "$destination")"
-    rm -f "$temporary" "${temporary}.chunk"* "${temporary}.error"*
+    rm -f "$temporary" "${temporary}.chunk"*
 
     headers="$(curl -fsSIL "$url" | tr -d '\r' || true)"
     expected_hash="$(printf '%s\n' "$headers" | awk -F': ' 'tolower($1)=="x-linked-etag" {gsub(/[" ]/, "", $2); print $2}' | tail -n1)"
@@ -472,12 +471,20 @@ download_if_missing() {
     printf '\r\033[K  Model download   0%% [P1:-----|P2:-----|P3:-----|P4:-----|P5:-----]'
 
     for chunk in 0 1 2 3 4; do
+      start=$(( chunk * chunk_size ))
+      end=$(( start + chunk_size - 1 ))
+      [ "$end" -ge "$file_size" ] && end=$(( file_size - 1 ))
       chunks[chunk]="${temporary}.chunk$((chunk + 1))"
+
+      curl -fL --retry 5 --retry-delay 2 --connect-timeout 30 \
+        --silent --show-error --range "${start}-${end}" \
+        --output "${chunks[chunk]}" "$url" &
+      pids[chunk]=$!
     done
 
-    retry_round=1
     while true; do
-      all_complete=1
+      total_downloaded=0
+      running=0
 
       for chunk in 0 1 2 3 4; do
         start=$(( chunk * chunk_size ))
@@ -485,104 +492,47 @@ download_if_missing() {
         [ "$end" -ge "$file_size" ] && end=$(( file_size - 1 ))
         expected_size=$(( end - start + 1 ))
         actual_size="$(stat -c '%s' "${chunks[chunk]}" 2>/dev/null || echo 0)"
+        [ "$actual_size" -gt "$expected_size" ] && actual_size="$expected_size"
 
-        if [ "$actual_size" -gt "$expected_size" ]; then
-          rm -f "${chunks[chunk]}"
-          actual_size=0
-        fi
+        total_downloaded=$(( total_downloaded + actual_size ))
+        part_pct=$(( actual_size * 100 / expected_size ))
+        part_pcts[chunk]="$part_pct"
 
-        if [ "$actual_size" -eq "$expected_size" ]; then
-          pids[chunk]=0
-          continue
-        fi
+        filled=$(( part_pct * bar_width / 100 ))
+        [ "$part_pct" -gt 0 ] && [ "$filled" -eq 0 ] && filled=1
+        empty=$(( bar_width - filled ))
+        printf -v fill_text '%*s' "$filled" ''
+        printf -v empty_text '%*s' "$empty" ''
+        fill_text="${fill_text// /#}"
+        empty_text="${empty_text// /-}"
+        part_bars[chunk]="${fill_text}${empty_text}"
 
-        all_complete=0
-        resume_start=$(( start + actual_size ))
-        (
-          curl -fL --connect-timeout 30 --speed-limit 1024 --speed-time 45 \
-            --silent --show-error --range "${resume_start}-${end}" \
-            --output - "$url" >> "${chunks[chunk]}"
-        ) 2>"${temporary}.error$((chunk + 1))" &
-        pids[chunk]=$!
-      done
-
-      [ "$all_complete" -eq 1 ] && break
-
-      while true; do
-        total_downloaded=0
-        running=0
-
-        for chunk in 0 1 2 3 4; do
-          start=$(( chunk * chunk_size ))
-          end=$(( start + chunk_size - 1 ))
-          [ "$end" -ge "$file_size" ] && end=$(( file_size - 1 ))
-          expected_size=$(( end - start + 1 ))
-          actual_size="$(stat -c '%s' "${chunks[chunk]}" 2>/dev/null || echo 0)"
-          [ "$actual_size" -gt "$expected_size" ] && actual_size="$expected_size"
-
-          total_downloaded=$(( total_downloaded + actual_size ))
-          part_pct=$(( actual_size * 100 / expected_size ))
-          part_pcts[chunk]="$part_pct"
-
-          filled=$(( part_pct * bar_width / 100 ))
-          [ "$part_pct" -gt 0 ] && [ "$filled" -eq 0 ] && filled=1
-          empty=$(( bar_width - filled ))
-          printf -v fill_text '%*s' "$filled" ''
-          printf -v empty_text '%*s' "$empty" ''
-          fill_text="${fill_text// /#}"
-          empty_text="${empty_text// /-}"
-          part_bars[chunk]="${fill_text}${empty_text}"
-
-          if [ "${pids[chunk]:-0}" -gt 0 ] && [ -r "/proc/${pids[chunk]}/stat" ]; then
-            proc_state="$(awk '{print $3}' "/proc/${pids[chunk]}/stat" 2>/dev/null || true)"
-            [ -n "$proc_state" ] && [ "$proc_state" != "Z" ] && running=1
-          fi
-        done
-
-        overall_pct=$(( total_downloaded * 100 / file_size ))
-        [ "$overall_pct" -gt 100 ] && overall_pct=100
-        printf -v progress_line '  Model download %3d%% [P1:%s|P2:%s|P3:%s|P4:%s|P5:%s]' \
-          "$overall_pct" "${part_bars[0]}" "${part_bars[1]}" "${part_bars[2]}" "${part_bars[3]}" "${part_bars[4]}"
-        printf '\r\033[K%s' "$progress_line"
-
-        [ "$running" -eq 0 ] && break
-        sleep 0.5
-      done
-
-      for chunk in 0 1 2 3 4; do
-        if [ "${pids[chunk]:-0}" -gt 0 ]; then
-          wait "${pids[chunk]}" || true
-          pids[chunk]=0
+        if [ -r "/proc/${pids[chunk]}/stat" ]; then
+          proc_state="$(awk '{print $3}' "/proc/${pids[chunk]}/stat" 2>/dev/null || true)"
+          [ -n "$proc_state" ] && [ "$proc_state" != "Z" ] && running=1
         fi
       done
 
-      all_complete=1
-      for chunk in 0 1 2 3 4; do
-        start=$(( chunk * chunk_size ))
-        end=$(( start + chunk_size - 1 ))
-        [ "$end" -ge "$file_size" ] && end=$(( file_size - 1 ))
-        expected_size=$(( end - start + 1 ))
-        actual_size="$(stat -c '%s' "${chunks[chunk]}" 2>/dev/null || echo 0)"
-        if [ "$actual_size" -gt "$expected_size" ]; then
-          rm -f "${chunks[chunk]}"
-          actual_size=0
-        fi
-        [ "$actual_size" -eq "$expected_size" ] || all_complete=0
-      done
+      overall_pct=$(( total_downloaded * 100 / file_size ))
+      [ "$overall_pct" -gt 100 ] && overall_pct=100
+      printf -v progress_line '  Model download %3d%% [P1:%s|P2:%s|P3:%s|P4:%s|P5:%s]' \
+        "$overall_pct" "${part_bars[0]}" "${part_bars[1]}" "${part_bars[2]}" "${part_bars[3]}" "${part_bars[4]}"
+      printf '\r\033[K%s' "$progress_line"
 
-      [ "$all_complete" -eq 1 ] && break
-
-      if [ "$retry_round" -ge "$max_retry_rounds" ]; then
-        printf '\n'
-        rm -f "$temporary" "${temporary}.chunk"* "${temporary}.error"*
-        fail "Model download could not complete after automatic retries: $url"
-        return 1
-      fi
-
-      retry_round=$(( retry_round + 1 ))
-      sleep 2
+      [ "$running" -eq 0 ] && break
+      sleep 0.5
     done
     printf '\n'
+
+    download_failed=0
+    for chunk in 0 1 2 3 4; do
+      wait "${pids[chunk]}" || download_failed=1
+    done
+    if [ "$download_failed" -ne 0 ]; then
+      rm -f "$temporary" "${temporary}.chunk"*
+      fail "One of the 5 model download pieces failed: $url"
+      return 1
+    fi
 
     for chunk in 0 1 2 3 4; do
       start=$(( chunk * chunk_size ))
@@ -591,14 +541,14 @@ download_if_missing() {
       expected_size=$(( end - start + 1 ))
       actual_size="$(stat -c '%s' "${chunks[chunk]}" 2>/dev/null || echo 0)"
       [ "$actual_size" -eq "$expected_size" ] || {
-        rm -f "$temporary" "${temporary}.chunk"* "${temporary}.error"*
+        rm -f "$temporary" "${temporary}.chunk"*
         fail "Model download piece $((chunk + 1)) has the wrong size: $url"
         return 1
       }
     done
 
     cat "${chunks[@]}" > "$temporary"
-    rm -f "${chunks[@]}" "${temporary}.error"*
+    rm -f "${chunks[@]}"
 
     actual_size="$(stat -c '%s' "$temporary" 2>/dev/null || echo 0)"
     [ "$actual_size" -eq "$file_size" ] || { rm -f "$temporary"; fail "Combined model file has the wrong size: $url"; return 1; }
@@ -609,17 +559,36 @@ download_if_missing() {
   fi
 }
 
+download_model_with_retries() {
+  local url="$1" destination="$2" attempt=1 max_attempts=20
+
+  while true; do
+    if download_if_missing "$url" "$destination"; then
+      return 0
+    fi
+
+    if [ "$attempt" -ge "$max_attempts" ]; then
+      fail "Model download could not complete after $max_attempts attempts: $url"
+      return 1
+    fi
+
+    attempt=$(( attempt + 1 ))
+    progress "Retrying model download (attempt $attempt/$max_attempts)..."
+    sleep 2
+  done
+}
+
 if [ "$DOWNLOAD_MODELS" = "1" ]; then
   progress "Downloading models..."
 
   if [ "$DOWNLOAD_CYBERREALISTIC" = "1" ]; then
-    download_if_missing \
+    download_model_with_retries \
     "https://huggingface.co/cyberdelia/CyberRealistic/resolve/main/CyberRealistic_V7.0_FP16.safetensors" \
     "$STAGE_WEBUI_DIR/models/Stable-diffusion/CyberRealistic_V7.0_FP16.safetensors"
   fi
 
   if [ "$DOWNLOAD_REALISTIC_VISION" = "1" ]; then
-    download_if_missing \
+    download_model_with_retries \
     "https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE/resolve/main/Realistic_Vision_V5.1-inpainting.safetensors" \
     "$STAGE_WEBUI_DIR/models/Stable-diffusion/Realistic_Vision_V5.1-inpainting.safetensors"
   fi
