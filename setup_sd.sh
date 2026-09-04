@@ -313,6 +313,8 @@ while true; do
       echo "Install cancelled."
       exit 0
       ;;
+    "")
+      ;;
     *)
       echo "Invalid option."
       pause_menu
