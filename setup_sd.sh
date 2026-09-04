@@ -450,7 +450,7 @@ sed -i 's/run_pip(f"install {clip_package}", "clip")/run_pip(f"install --no-buil
 
 download_if_missing() {
   local url="$1" destination="$2" temporary="${2}.part" expected_hash actual_hash
-  local headers file_size chunk_size start end expected_size actual_size chunk download_failed
+  local headers file_size display_size chunk_size start end expected_size actual_size chunk download_failed
   local total_downloaded overall_pct part_pct filled empty fill_text empty_text progress_line running proc_state
   local bar_width=5
   local -a chunks=() pids=() part_pcts=(0 0 0 0 0) part_bars=("-----" "-----" "-----" "-----" "-----")
@@ -467,7 +467,8 @@ download_if_missing() {
     [[ "$file_size" =~ ^[0-9]+$ ]] && [ "$file_size" -gt 0 ] || { fail "Could not obtain model size for 5-part download: $url"; return 1; }
 
     chunk_size=$(( (file_size + 4) / 5 ))
-    echo "  $(basename "$destination")"
+    display_size="$(awk -v bytes="$file_size" 'BEGIN { printf "%.2f GB", bytes / 1000000000 }')"
+    echo "  $(basename "$destination") ($display_size)"
     printf '\r\033[K  Model download   0%% [P1:-----|P2:-----|P3:-----|P4:-----|P5:-----]'
 
     for chunk in 0 1 2 3 4; do
