@@ -8159,6 +8159,8 @@ EOF
 cat <<'EOF' > "$INSTALL_ROOT/.sd_gui_app.py"
 #!/usr/bin/env python3
 import os
+import signal
+import shutil
 import socket
 import subprocess
 import threading
@@ -8178,6 +8180,8 @@ HOME = os.path.expanduser("~")
 SCRIPT = "__RUN_SD_PATH__"
 WEBUI_DIR = "__WEBUI_DIR__"
 PID_FILE = "__GUI_PID_FILE__"
+WEBUI_BROWSER_PID_FILE = os.path.join(os.path.dirname(PID_FILE), "webui-browser.pid")
+WEBUI_BROWSER_PROFILE = os.path.join(os.path.dirname(PID_FILE), "webui-browser-profile")
 BANNER_IMAGE = "__BANNER_PATH__"
 
 BG = "#050814"
@@ -8244,8 +8248,33 @@ def run_mode(mode):
         threading.Thread(target=wait_for_webui_and_open, daemon=True).start()
 
 
+def close_webui_browser():
+    try:
+        with open(WEBUI_BROWSER_PID_FILE, "r", encoding="utf-8") as f:
+            pid = int(f.read().strip())
+        if pid > 1:
+            try:
+                os.killpg(pid, signal.SIGTERM)
+            except ProcessLookupError:
+                pass
+            except Exception:
+                try:
+                    os.kill(pid, signal.SIGTERM)
+                except Exception:
+                    pass
+    except Exception:
+        pass
+    try:
+        os.remove(WEBUI_BROWSER_PID_FILE)
+    except FileNotFoundError:
+        pass
+    except Exception:
+        pass
+
+
 def stop_run():
     subprocess.run([SCRIPT], input="3\n", text=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+    close_webui_browser()
     notify("Stable Diffusion stopped")
 
 
@@ -8277,8 +8306,36 @@ def get_lan_ip():
     return "127.0.0.1"
 
 
+def launch_webui_browser(url):
+    browser = shutil.which("chromium") or shutil.which("chromium-browser")
+    if not browser:
+        webbrowser.open(url)
+        return
+
+    close_webui_browser()
+    os.makedirs(os.path.dirname(WEBUI_BROWSER_PID_FILE), mode=0o700, exist_ok=True)
+    os.makedirs(WEBUI_BROWSER_PROFILE, mode=0o700, exist_ok=True)
+    try:
+        proc = subprocess.Popen(
+            [
+                browser,
+                f"--user-data-dir={WEBUI_BROWSER_PROFILE}",
+                f"--app={url}",
+                "--no-first-run",
+                "--no-default-browser-check",
+            ],
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            start_new_session=True,
+        )
+        with open(WEBUI_BROWSER_PID_FILE, "w", encoding="utf-8") as f:
+            f.write(str(proc.pid))
+    except Exception:
+        webbrowser.open(url)
+
+
 def open_webui():
-    webbrowser.open(f"http://{get_lan_ip()}:7860")
+    launch_webui_browser(f"http://{get_lan_ip()}:7860")
 
 
 def wait_for_webui_and_open():
@@ -8286,7 +8343,7 @@ def wait_for_webui_and_open():
     for _ in range(180):
         try:
             with urllib.request.urlopen(url, timeout=2):
-                webbrowser.open(url)
+                launch_webui_browser(url)
                 notify(f"Stable Diffusion WebUI opened: {url}")
                 return
         except Exception:
