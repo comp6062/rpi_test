@@ -25,6 +25,7 @@ get_home_for_user() {
   [ -d "$h" ] && echo "$h" || echo "${HOME:-/home/$u}"
 }
 
+# Read from the controlling terminal when the installer arrives through a pipe.
 read_tty() {
   local prompt="$1"
   local default="$2"
@@ -475,8 +476,7 @@ download_if_missing() {
     display_size="$(awk -v bytes="$file_size" 'BEGIN { printf "%.2f GB", bytes / 1000000000 }')"
     echo "  $(basename "$destination") ($display_size)"
 
-    # Keep the live status on one physical terminal row. The added speed
-    # field can otherwise push the five-piece bar past the terminal width.
+    # Leave room for the speed field so the five-part bar stays on one row.
     term_cols="$(tput cols 2>/dev/null || printf '80')"
     [[ "$term_cols" =~ ^[0-9]+$ ]] || term_cols=80
     if [ "$term_cols" -lt 74 ]; then
@@ -642,6 +642,7 @@ rm -rf "$BACKUP_WEBUI_DIR" "$BACKUP_VENV_DIR"
 SWAP_STARTED=1
 mv "$STAGE_WEBUI_DIR" "$WEBUI_DIR"
 
+# Virtual-environment entry points embed absolute paths; create it in place.
 progress "Creating virtual environment at its final path..."
 sudo -u "$TARGET_USER" python3 -m venv "$VENV_DIR"
 source "$VENV_DIR/bin/activate"
@@ -754,8 +755,7 @@ chmod +x "$RUN_SD_PATH"
 chown "$TARGET_USER:$TARGET_USER" "$RUN_SD_PATH"
 
 if [ "$INCLUDE_GUI" = "1" ]; then
-# GUI LAUNCHER
-# ============================================================
+# Generate the GUI here so the remote installer needs no companion files.
 APP_NAME="Stable Diffusion"
 LAUNCHER="$USER_HOME/.local/share/applications/sd-gui.desktop"
 DESKTOP_SHORTCUT="$USER_HOME/Desktop/StableDiffusionGUI.desktop"
@@ -8445,6 +8445,7 @@ root.deiconify()
 root.mainloop()
 EOF
 
+# Use Python string literals for paths substituted into the quoted GUI template.
 python3 - "$INSTALL_ROOT/.sd_gui_app.py" "$RUN_SD_PATH" "$WEBUI_DIR" "$INSTALL_ROOT/.sd_gui_banner.png" "$INSTALL_ROOT/.sd-runtime/gui.pid" <<'PY_PATCH'
 from pathlib import Path
 import sys
@@ -10154,6 +10155,7 @@ install_sd_launcher_icon
 mkdir -p "$USER_HOME/.local/share/applications"
 mkdir -p "$USER_HOME/Desktop"
 
+# Desktop Exec fields have their own quoting rules.
 desktop_exec_quote() {
   local value="$1"
   value="${value//\\/\\\\}"
