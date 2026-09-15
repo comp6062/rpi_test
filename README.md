@@ -140,7 +140,7 @@ The GUI offers LAN Mode, Offline Mode, Stop Running, Uninstall, and Open Web-UI.
 
 When Chromium is available, the GUI opens a separate app window with an installation-specific browser profile. **Stop WebUI** also attempts to close that browser process group. The default-browser fallback is not tracked and may stay open.
 
-In this version, LAN and Offline launches leave their terminal at **“Press ENTER to close...”** after WebUI exits. Stop does not explicitly close that terminal. **Exit** closes the GUI window without stopping WebUI.
+When launched from the GUI, LAN and Offline terminals close automatically when WebUI exits, including after Stop; there is no Enter-to-close wait. **Exit** closes the GUI window without stopping WebUI.
 
 ## 6. Model downloads
 
@@ -197,7 +197,7 @@ Setup installs apt dependencies without a full OS upgrade. Runtime PID files liv
 - **Model download fails:** keep the terminal error, check connectivity and disk space, and note whether the failure mentions headers, piece size, or SHA-256. Setup does not provide a persistent download-resume interface.
 - **WebUI fails to launch:** capture the terminal traceback. Use LAN mode for initial dependency setup. “Installation is incomplete” means the launcher could not find its Python executable or `launch.py`.
 - **GUI or icon does not launch:** follow setup's reboot instruction, then run `<installation root>/.sd_gui_runner.sh` from a desktop terminal to see errors. The installer assumes a literal `~/Desktop` directory.
-- **Terminal stays open after Stop:** this is the current launcher behavior; press Enter to close it.
+- **Launch error disappears when the terminal closes:** run `<installation root>/run_sd.sh` from an existing terminal to keep the error output visible.
 
 ### Bundle validation
 

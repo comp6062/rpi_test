@@ -8237,7 +8237,7 @@ def run_mode(mode):
     elif str(mode) == "3":
         cmd = f"printf '3\n' | {shell_quote(SCRIPT)}"
     else:
-        cmd = f"printf '%s\n' {mode} | {shell_quote(SCRIPT)}; echo; echo Press ENTER to close...; read"
+        cmd = f"printf '%s\n' {mode} | {shell_quote(SCRIPT)}"
     proc = subprocess.Popen(["setsid", "lxterminal", "--command", f"bash -c {shell_quote(cmd)}"])
     os.makedirs(os.path.dirname(PID_FILE), mode=0o700, exist_ok=True)
     with open(PID_FILE, "w", encoding="utf-8") as f:
