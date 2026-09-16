@@ -182,12 +182,22 @@ select_models() {
   local cursor_2=" "
   local cursor_3=" "
   local cursor_4=" "
+  local total_size_hundredths=0
+  local total_download_size=""
 
   while true; do
     [ "$cursor" -eq 0 ] && cursor_1=">" || cursor_1=" "
     [ "$cursor" -eq 1 ] && cursor_2=">" || cursor_2=" "
     [ "$cursor" -eq 2 ] && cursor_3=">" || cursor_3=" "
     [ "$cursor" -eq 3 ] && cursor_4=">" || cursor_4=" "
+
+    # Sum the displayed model sizes in hundredths of a GB.
+    total_size_hundredths=$((
+      DOWNLOAD_CYBERREALISTIC * 213 + DOWNLOAD_REALISTIC_VISION * 427 +
+      DOWNLOAD_REALISTIC_VISION_V6 * 213 + DOWNLOAD_REAL_DREAM * 213
+    ))
+    printf -v total_download_size '%d.%02d GB' \
+      "$((total_size_hundredths / 100))" "$((total_size_hundredths % 100))"
 
     clear 2>/dev/null || true
     cat <<MENU
@@ -200,6 +210,8 @@ Use Up/Down to move. Press Space or Enter to toggle the highlighted model.
   $cursor_2 $([ "$DOWNLOAD_REALISTIC_VISION" = "1" ] && echo "[X]" || echo "[ ]") Realistic_Vision_V5.1-inpainting.safetensors (4.27 GB)
   $cursor_3 $([ "$DOWNLOAD_REALISTIC_VISION_V6" = "1" ] && echo "[X]" || echo "[ ]") Realistic_Vision_V6.0_NV_B1_fp16.safetensors (2.13 GB)
   $cursor_4 $([ "$DOWNLOAD_REAL_DREAM" = "1" ] && echo "[X]" || echo "[ ]") sd1.5-real-dream-16.safetensors (2.13 GB)
+
+  Total selected download: $total_download_size (approx.)
 
   C) Continue
   B) Back to install options
