@@ -144,12 +144,14 @@ When launched from the GUI, LAN and Offline terminals close automatically when W
 
 ## 6. Model downloads
 
-Choose either or both included checkpoints:
+Choose any combination of the four included checkpoints:
 
 | File | Menu size | Use |
 | --- | --- | --- |
 | `CyberRealistic_V7.0_FP16.safetensors` | 2.13 GB | General image generation. |
 | `Realistic_Vision_V5.1-inpainting.safetensors` | 4.27 GB | Inpainting. |
+| `Realistic_Vision_V6.0_NV_B1_fp16.safetensors` | 2.13 GB | General image generation. |
+| `sd1.5-real-dream-16.safetensors` | 2.13 GB | General image generation. |
 
 Downloads use five parallel byte ranges, display progress on one row, and update the speed calculation at roughly one-second intervals. The download title uses the size returned by the host; menu sizes are fixed labels.
 

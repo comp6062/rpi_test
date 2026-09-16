@@ -142,6 +142,8 @@ USER_HOME="$(get_home_for_user "$TARGET_USER")"
 DOWNLOAD_MODELS=1
 DOWNLOAD_CYBERREALISTIC=1
 DOWNLOAD_REALISTIC_VISION=1
+DOWNLOAD_REALISTIC_VISION_V6=1
+DOWNLOAD_REAL_DREAM=1
 INCLUDE_GUI=1
 CREATE_DESKTOP=1
 CREATE_MENU=1
@@ -178,10 +180,14 @@ select_models() {
   local key_rest=""
   local cursor_1=" "
   local cursor_2=" "
+  local cursor_3=" "
+  local cursor_4=" "
 
   while true; do
     [ "$cursor" -eq 0 ] && cursor_1=">" || cursor_1=" "
     [ "$cursor" -eq 1 ] && cursor_2=">" || cursor_2=" "
+    [ "$cursor" -eq 2 ] && cursor_3=">" || cursor_3=" "
+    [ "$cursor" -eq 3 ] && cursor_4=">" || cursor_4=" "
 
     clear 2>/dev/null || true
     cat <<MENU
@@ -192,6 +198,8 @@ Use Up/Down to move. Press Space or Enter to toggle the highlighted model.
 
   $cursor_1 $([ "$DOWNLOAD_CYBERREALISTIC" = "1" ] && echo "[X]" || echo "[ ]") CyberRealistic_V7.0_FP16.safetensors (2.13 GB)
   $cursor_2 $([ "$DOWNLOAD_REALISTIC_VISION" = "1" ] && echo "[X]" || echo "[ ]") Realistic_Vision_V5.1-inpainting.safetensors (4.27 GB)
+  $cursor_3 $([ "$DOWNLOAD_REALISTIC_VISION_V6" = "1" ] && echo "[X]" || echo "[ ]") Realistic_Vision_V6.0_NV_B1_fp16.safetensors (2.13 GB)
+  $cursor_4 $([ "$DOWNLOAD_REAL_DREAM" = "1" ] && echo "[X]" || echo "[ ]") sd1.5-real-dream-16.safetensors (2.13 GB)
 
   C) Continue
   B) Back to install options
@@ -218,20 +226,25 @@ MENU
 
     case "$key" in
       $'\e[A')
-        cursor=0
+        cursor=$((cursor > 0 ? cursor - 1 : 0))
         ;;
       $'\e[B')
-        cursor=1
+        cursor=$((cursor < 3 ? cursor + 1 : 3))
         ;;
       " "|"")
         if [ "$cursor" -eq 0 ]; then
           [ "$DOWNLOAD_CYBERREALISTIC" = "1" ] && DOWNLOAD_CYBERREALISTIC=0 || DOWNLOAD_CYBERREALISTIC=1
-        else
+        elif [ "$cursor" -eq 1 ]; then
           [ "$DOWNLOAD_REALISTIC_VISION" = "1" ] && DOWNLOAD_REALISTIC_VISION=0 || DOWNLOAD_REALISTIC_VISION=1
+        elif [ "$cursor" -eq 2 ]; then
+          [ "$DOWNLOAD_REALISTIC_VISION_V6" = "1" ] && DOWNLOAD_REALISTIC_VISION_V6=0 || DOWNLOAD_REALISTIC_VISION_V6=1
+        else
+          [ "$DOWNLOAD_REAL_DREAM" = "1" ] && DOWNLOAD_REAL_DREAM=0 || DOWNLOAD_REAL_DREAM=1
         fi
         ;;
       c|C)
-        if [ "$DOWNLOAD_CYBERREALISTIC" = "1" ] || [ "$DOWNLOAD_REALISTIC_VISION" = "1" ]; then
+        if [ "$DOWNLOAD_CYBERREALISTIC" = "1" ] || [ "$DOWNLOAD_REALISTIC_VISION" = "1" ] ||
+           [ "$DOWNLOAD_REALISTIC_VISION_V6" = "1" ] || [ "$DOWNLOAD_REAL_DREAM" = "1" ]; then
           return 0
         fi
         echo "Select at least one model while model downloads are ON."
@@ -260,6 +273,12 @@ selected_models_label() {
   fi
   if [ "$DOWNLOAD_REALISTIC_VISION" = "1" ]; then
     printf '\n               - Realistic_Vision_V5.1-inpainting.safetensors (4.27 GB)'
+  fi
+  if [ "$DOWNLOAD_REALISTIC_VISION_V6" = "1" ]; then
+    printf '\n               - Realistic_Vision_V6.0_NV_B1_fp16.safetensors (2.13 GB)'
+  fi
+  if [ "$DOWNLOAD_REAL_DREAM" = "1" ]; then
+    printf '\n               - sd1.5-real-dream-16.safetensors (2.13 GB)'
   fi
   printf '\n'
 }
@@ -632,6 +651,18 @@ if [ "$DOWNLOAD_MODELS" = "1" ]; then
     download_model_with_retries \
     "https://huggingface.co/SG161222/Realistic_Vision_V5.1_noVAE/resolve/main/Realistic_Vision_V5.1-inpainting.safetensors" \
     "$STAGE_WEBUI_DIR/models/Stable-diffusion/Realistic_Vision_V5.1-inpainting.safetensors"
+  fi
+
+  if [ "$DOWNLOAD_REALISTIC_VISION_V6" = "1" ]; then
+    download_model_with_retries \
+    "https://huggingface.co/SG161222/Realistic_Vision_V6.0_B1_noVAE/resolve/main/Realistic_Vision_V6.0_NV_B1_fp16.safetensors?download=true" \
+    "$STAGE_WEBUI_DIR/models/Stable-diffusion/Realistic_Vision_V6.0_NV_B1_fp16.safetensors"
+  fi
+
+  if [ "$DOWNLOAD_REAL_DREAM" = "1" ]; then
+    download_model_with_retries \
+    "https://huggingface.co/sinatra-rd/sd-1.5-real-dream/resolve/main/sd1.5-real-dream-16.safetensors?download=true" \
+    "$STAGE_WEBUI_DIR/models/Stable-diffusion/sd1.5-real-dream-16.safetensors"
   fi
 fi
 
